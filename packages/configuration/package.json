@@ -13,6 +13,6 @@
   "sideEffects": false,
   "dependencies": {
     "@ctr/core": "*",
-    "zod": "^3.24.1"
+    "zod": "^4.4.3"
   }
 }
