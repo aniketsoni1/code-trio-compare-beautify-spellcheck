@@ -1,0 +1,325 @@
+{
+  "name": "code-trio-compare-beautify-spellcheck",
+  "displayName": "Code Trio - Compare Beautify Spellcheck",
+  "version": "0.1.0",
+  "publisher": "aniketsoni1",
+  "description": "Three offline dev tools in one: code compare/diff, code-aware spell check, and beautify/format. Deterministic, private, no telemetry.",
+  "license": "Apache-2.0",
+  "author": "aniketsoni1",
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#0B1020",
+    "theme": "dark"
+  },
+  "homepage": "https://github.com/aniketsoni1/code-trio-compare-beautify-spellcheck#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aniketsoni1/code-trio-compare-beautify-spellcheck.git",
+    "directory": "apps/vscode-extension"
+  },
+  "bugs": {
+    "url": "https://github.com/aniketsoni1/code-trio-compare-beautify-spellcheck/issues"
+  },
+  "qna": "https://github.com/aniketsoni1/code-trio-compare-beautify-spellcheck/discussions",
+  "sponsor": {
+    "url": "https://github.com/sponsors/aniketsoni1"
+  },
+  "categories": [
+    "Formatters",
+    "Linters",
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "diff",
+    "compare",
+    "merge",
+    "spell check",
+    "spellcheck",
+    "formatter",
+    "beautify",
+    "prettier",
+    "offline",
+    "privacy"
+  ],
+  "engines": {
+    "vscode": "^1.90.0",
+    "node": ">=20"
+  },
+  "type": "commonjs",
+  "main": "./out/extension.cjs",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "In untrusted workspaces Code Trio runs read-only: compare and spell diagnostics work, but applying formatting and writing to the project dictionary are disabled."
+    },
+    "virtualWorkspaces": {
+      "supported": "limited",
+      "description": "Compare and spell check work in virtual workspaces; git-ref compare and format-on-save may be unavailable."
+    }
+  },
+  "activationEvents": [
+    "onView:codeTrio.resultsView"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "codeTrio.compareWith",
+        "title": "Compare Active File With File...",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.compareWithClipboard",
+        "title": "Compare Active File With Clipboard",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.compareWithGitRef",
+        "title": "Compare Active File With Git Ref...",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.spellCheckFile",
+        "title": "Spell Check Current File",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.spellCheckWorkspace",
+        "title": "Spell Check Workspace",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.spellFixAllInFile",
+        "title": "Fix All Spelling In File",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.spellAddWord",
+        "title": "Add Word To Project Dictionary",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.formatDocument",
+        "title": "Beautify Document",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.formatPreview",
+        "title": "Preview Beautify Changes (Dry Run)",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.formatChangedFiles",
+        "title": "Beautify Changed Files Only",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.showPanel",
+        "title": "Show Results Panel",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.refreshResults",
+        "title": "Refresh Results",
+        "category": "Code Trio",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "codeTrio.clearResults",
+        "title": "Clear Results",
+        "category": "Code Trio",
+        "icon": "$(clear-all)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "codeTrio",
+          "title": "Code Trio",
+          "icon": "media/activity-bar.svg"
+        }
+      ]
+    },
+    "views": {
+      "codeTrio": [
+        {
+          "id": "codeTrio.resultsView",
+          "name": "Results",
+          "icon": "media/activity-bar.svg",
+          "contextualTitle": "Code Trio"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "codeTrio.resultsView",
+        "contents": "Code Trio bundles three offline tools: compare, spell check, and beautify.\n[Compare Active File](command:codeTrio.compareWith)\n[Spell Check File](command:codeTrio.spellCheckFile)\n[Beautify Document](command:codeTrio.formatDocument)\nAll processing happens locally with no network calls."
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "codeTrio.spellAddWord",
+          "when": "false"
+        },
+        {
+          "command": "codeTrio.refreshResults",
+          "when": "false"
+        },
+        {
+          "command": "codeTrio.clearResults",
+          "when": "false"
+        }
+      ],
+      "editor/context": [
+        {
+          "submenu": "codeTrio.editorContext",
+          "group": "1_modification@99"
+        }
+      ],
+      "codeTrio.editorContext": [
+        {
+          "command": "codeTrio.compareWith",
+          "group": "1_compare@1"
+        },
+        {
+          "command": "codeTrio.compareWithClipboard",
+          "group": "1_compare@2"
+        },
+        {
+          "command": "codeTrio.spellCheckFile",
+          "group": "2_spell@1"
+        },
+        {
+          "command": "codeTrio.formatPreview",
+          "group": "3_format@1"
+        },
+        {
+          "command": "codeTrio.formatDocument",
+          "group": "3_format@2"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "codeTrio.refreshResults",
+          "when": "view == codeTrio.resultsView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "codeTrio.clearResults",
+          "when": "view == codeTrio.resultsView",
+          "group": "navigation@2"
+        }
+      ]
+    },
+    "submenus": [
+      {
+        "id": "codeTrio.editorContext",
+        "label": "Code Trio"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "codeTrio.formatPreview",
+        "key": "ctrl+alt+b",
+        "mac": "cmd+alt+b",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "codeTrio.spellCheckFile",
+        "key": "ctrl+alt+s",
+        "mac": "cmd+alt+s",
+        "when": "editorTextFocus"
+      }
+    ],
+    "configuration": {
+      "title": "Code Trio",
+      "properties": {
+        "codeTrio.diff.granularity": {
+          "type": "string",
+          "enum": ["line", "word", "char"],
+          "default": "word",
+          "description": "Default refinement granularity for the compare view.",
+          "scope": "resource"
+        },
+        "codeTrio.diff.ignoreWhitespace": {
+          "type": "boolean",
+          "default": false,
+          "description": "Ignore whitespace-only differences when comparing.",
+          "scope": "resource"
+        },
+        "codeTrio.diff.ignoreCase": {
+          "type": "boolean",
+          "default": false,
+          "description": "Ignore case differences when comparing.",
+          "scope": "resource"
+        },
+        "codeTrio.spell.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable code-aware spell diagnostics.",
+          "scope": "resource"
+        },
+        "codeTrio.spell.checkIdentifiers": {
+          "type": "boolean",
+          "default": false,
+          "description": "Also spell-check identifiers (opt-in). Comments and strings are always checked when enabled.",
+          "scope": "resource"
+        },
+        "codeTrio.spell.severity": {
+          "type": "string",
+          "enum": ["error", "warning", "information", "hint"],
+          "default": "information",
+          "description": "Severity used for spelling diagnostics.",
+          "scope": "resource"
+        },
+        "codeTrio.spell.dictionaries": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["base", "technical"] },
+          "default": ["base", "technical"],
+          "description": "Built-in dictionaries to load.",
+          "scope": "resource"
+        },
+        "codeTrio.spell.projectDictionaryPath": {
+          "type": "string",
+          "default": ".codetrio/dictionary.txt",
+          "description": "Workspace-relative path to the shared project dictionary.",
+          "scope": "resource"
+        },
+        "codeTrio.spell.ignoreGlobs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["**/node_modules/**", "**/dist/**", "**/out/**"],
+          "description": "Globs excluded from spell checking.",
+          "scope": "resource"
+        },
+        "codeTrio.format.formatOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Beautify supported files on save (opt-in).",
+          "scope": "resource"
+        },
+        "codeTrio.format.previewBeforeApply": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a dry-run diff preview before applying formatting from the command.",
+          "scope": "resource"
+        },
+        "codeTrio.format.pinnedVersions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Record the formatter name and version in results for reproducibility.",
+          "scope": "resource"
+        }
+      }
+    },
+    "configurationDefaults": {
+      "[markdown]": {
+        "codeTrio.spell.checkIdentifiers": false
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "node ./scripts/build.mjs --production"
+  }
+}

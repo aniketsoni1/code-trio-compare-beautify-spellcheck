@@ -1,0 +1,7 @@
+# Code Trio project dictionary for the demo workspace.
+# One word per line; '#' starts a comment. Prefix '!' to force-allow a word.
+payload
+greet
+codetrio
+trio
+beautify

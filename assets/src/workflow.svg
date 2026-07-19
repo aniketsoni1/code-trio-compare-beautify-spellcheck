@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360">
+    <defs><marker id="a2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#233049"/></marker></defs>
+    <rect width="1200" height="360" fill="#0B1020"/>
+    <text x="40" y="60" font-family="Poppins, Lato, DejaVu Sans, sans-serif" font-weight="700" font-size="24" fill="#E7ECF5">Everyday workflow</text>
+    
+    <g transform="translate(40,120)">
+      <rect width="220" height="110" rx="12" fill="#121A2E" stroke="#4C8DFF" stroke-width="1.5"/>
+      <circle cx="26" cy="30" r="10" fill="#4C8DFF"/>
+      <text x="48" y="35" font-family="Poppins, Lato, DejaVu Sans, sans-serif" font-weight="600" font-size="16" fill="#E7ECF5">Compare</text>
+      <text x="20" y="66" font-family="Poppins, Lato, DejaVu Sans, sans-serif" font-size="13" fill="#8A93A6">Diff files, clipboard,</text>
+      <text x="20" y="86" font-family="Poppins, Lato, DejaVu Sans, sans-serif" font-size="13" fill="#8A93A6">or a git ref</text>
+    </g>
+    <line x1="262" y1="175" x2="302" y2="175" stroke="#233049" stroke-width="2" marker-end="url(#a2)"/>
+    
+    <g transform="translate(330,120)">
+      <rect width="220" height="110" rx="12" fill="#121A2E" stroke="#37D39B" stroke-width="1.5"/>
+      <circle cx="26" cy="30" r="10" fill="#37D39B"/>
+      <text x="48" y="35" font-family="Poppins, Lato, DejaVu Sans, sans-serif" font-weight="600" font-size="16" fill="#E7ECF5">Spell</text>
+      <text x="20" y="66" font-family="Poppins, Lato, DejaVu Sans, sans-serif" font-size="13" fill="#8A93A6">Fix typos in comments</text>
+      <text x="20" y="86" font-family="Poppins, Lato, DejaVu Sans, sans-serif" font-size="13" fill="#8A93A6">&amp; strings inline</text>
+    </g>
+    <line x1="552" y1="175" x2="592" y2="175" stroke="#233049" stroke-width="2" marker-end="url(#a2)"/>
+    
+    <g transform="translate(620,120)">
+      <rect width="220" height="110" rx="12" fill="#121A2E" stroke="#B57BFF" stroke-width="1.5"/>
+      <circle cx="26" cy="30" r="10" fill="#B57BFF"/>
+      <text x="48" y="35" font-family="Poppins, Lato, DejaVu Sans, sans-serif" font-weight="600" font-size="16" fill="#E7ECF5">Beautify</text>
+      <text x="20" y="66" font-family="Poppins, Lato, DejaVu Sans, sans-serif" font-size="13" fill="#8A93A6">Preview, then apply</text>
+      <text x="20" y="86" font-family="Poppins, Lato, DejaVu Sans, sans-serif" font-size="13" fill="#8A93A6">Prettier formatting</text>
+    </g>
+    <line x1="842" y1="175" x2="882" y2="175" stroke="#233049" stroke-width="2" marker-end="url(#a2)"/>
+    
+    <g transform="translate(910,120)">
+      <rect width="220" height="110" rx="12" fill="#121A2E" stroke="#F5C451" stroke-width="1.5"/>
+      <circle cx="26" cy="30" r="10" fill="#F5C451"/>
+      <text x="48" y="35" font-family="Poppins, Lato, DejaVu Sans, sans-serif" font-weight="600" font-size="16" fill="#E7ECF5">Commit</text>
+      <text x="20" y="66" font-family="Poppins, Lato, DejaVu Sans, sans-serif" font-size="13" fill="#8A93A6">Clean, consistent,</text>
+      <text x="20" y="86" font-family="Poppins, Lato, DejaVu Sans, sans-serif" font-size="13" fill="#8A93A6">reviewed changes</text>
+    </g>
+  </svg>

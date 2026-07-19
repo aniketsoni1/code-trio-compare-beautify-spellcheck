@@ -1,0 +1,47 @@
+name: Bug report
+description: Report a problem with Code Trio
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to file a bug. Please run `code-trio doctor` and include the output.
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where did it happen?
+      options:
+        - VS Code extension
+        - CLI
+        - Both
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Code Trio version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open '...'
+        2. Run command '...'
+        3. See error
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment (`code-trio doctor` output, OS, VS Code version)
+    validations:
+      required: false

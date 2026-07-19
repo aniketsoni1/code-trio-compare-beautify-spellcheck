@@ -1,0 +1,17 @@
+{
+  "name": "@ctr/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Code Trio shared model, Zod schemas, engine/adapter contracts, language registry, and permission model.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "sideEffects": false,
+  "dependencies": {
+    "zod": "^3.24.1"
+  }
+}

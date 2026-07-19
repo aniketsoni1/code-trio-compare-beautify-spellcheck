@@ -1,0 +1,27 @@
+name: Feature request
+description: Suggest an idea for Code Trio
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Which tool?
+      options:
+        - Compare / Diff
+        - Spell Check
+        - Beautify / Format
+        - Shared / other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: false

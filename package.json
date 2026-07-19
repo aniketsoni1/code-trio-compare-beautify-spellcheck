@@ -1,0 +1,67 @@
+{
+  "name": "code-trio-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Code Trio - offline, deterministic three-in-one developer toolkit: compare/diff, code-aware spell check, and beautify/format. Monorepo root.",
+  "license": "Apache-2.0",
+  "author": "aniketsoni1",
+  "homepage": "https://github.com/aniketsoni1/code-trio-compare-beautify-spellcheck#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aniketsoni1/code-trio-compare-beautify-spellcheck.git"
+  },
+  "bugs": {
+    "url": "https://github.com/aniketsoni1/code-trio-compare-beautify-spellcheck/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --check \"**/*.{ts,mjs,js,json,md,yml,yaml}\"",
+    "format:write": "prettier --write \"**/*.{ts,mjs,js,json,md,yml,yaml}\"",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ext": "node apps/vscode-extension/scripts/run-tests.mjs",
+    "cli": "tsx apps/cli/src/main.ts",
+    "build": "node scripts/build-all.mjs",
+    "build:cli": "node scripts/build-cli.mjs",
+    "build:ext": "node apps/vscode-extension/scripts/build.mjs",
+    "verify": "npm run typecheck && npm run lint && npm run test:unit",
+    "package:vsix": "node scripts/package-vsix.mjs",
+    "verify:vsix": "node scripts/verify-vsix.mjs",
+    "assets": "node scripts/generate-assets.mjs",
+    "clean": "node scripts/clean.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@resvg/resvg-js": "^2.6.2",
+    "@types/node": "^22.10.2",
+    "@types/vscode": "^1.90.0",
+    "@types/mocha": "^10.0.10",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "@vitest/coverage-v8": "^2.1.8",
+    "@vscode/test-electron": "^2.4.1",
+    "@vscode/vsce": "^3.2.1",
+    "esbuild": "^0.24.2",
+    "glob": "^11.0.0",
+    "mocha": "^10.8.2",
+    "eslint": "^9.17.0",
+    "globals": "^15.13.0",
+    "prettier": "3.9.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.18.0",
+    "vitest": "^2.1.8"
+  }
+}

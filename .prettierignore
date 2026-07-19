@@ -1,0 +1,11 @@
+node_modules
+dist
+out
+coverage
+artifacts
+assets/**/*.png
+assets/**/*.gif
+assets/**/*.jpg
+**/*.vsix
+CHANGELOG.md
+packages/dictionaries/src/data/*.txt

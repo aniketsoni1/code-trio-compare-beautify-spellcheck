@@ -1,0 +1,45 @@
+{
+  "name": "code-trio",
+  "version": "0.1.0",
+  "description": "Code Trio CLI - offline, deterministic compare/diff, code-aware spell check, and beautify/format in one tool.",
+  "license": "Apache-2.0",
+  "author": "aniketsoni1",
+  "homepage": "https://github.com/aniketsoni1/code-trio-compare-beautify-spellcheck#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aniketsoni1/code-trio-compare-beautify-spellcheck.git",
+    "directory": "apps/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/aniketsoni1/code-trio-compare-beautify-spellcheck/issues"
+  },
+  "keywords": [
+    "diff",
+    "compare",
+    "spell-check",
+    "spellcheck",
+    "formatter",
+    "beautify",
+    "prettier",
+    "cli",
+    "offline",
+    "developer-tools"
+  ],
+  "type": "module",
+  "bin": {
+    "code-trio": "./dist/cli/index.cjs"
+  },
+  "files": [
+    "dist/cli/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "comment": "The published binary is a self-contained esbuild bundle; @ctr/* are dev-time workspace sources resolved via tsconfig paths, not runtime deps.",
+  "dependencies": {
+    "commander": "^12.1.0",
+    "picocolors": "^1.1.1"
+  }
+}

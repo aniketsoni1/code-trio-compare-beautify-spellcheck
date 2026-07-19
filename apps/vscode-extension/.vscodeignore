@@ -1,0 +1,24 @@
+# Everything the runtime does not need. We ship a single bundled out/extension.cjs,
+# so source, tests, maps, and node_modules are excluded.
+
+.vscode-test/**
+.vscode-test.*
+src/**
+scripts/**
+test/**
+node_modules/**
+
+# TypeScript sources and sourcemaps (the bundle is self-contained JS)
+**/*.ts
+**/*.map
+tsconfig*.json
+
+# Repo/editor noise
+.gitignore
+.eslintrc*
+eslint.config.*
+**/.DS_Store
+
+# Do NOT ignore: out/extension.cjs, media/**, package.json, README.md, CHANGELOG.md, LICENSE
+!out/extension.cjs
+!media/**

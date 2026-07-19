@@ -1,0 +1,96 @@
+import { Command } from "commander";
+import type { Severity } from "@ctr/core";
+import { loadCliConfig } from "./config-io";
+import { runDiffCommand } from "./commands/diff";
+import { runSpellCommand } from "./commands/spell";
+import { runFormatCommand } from "./commands/format";
+import { runConfigureCommand, runDoctorCommand, runInitCommand } from "./commands/misc";
+import pkg from "../package.json";
+
+export function buildProgram(): Command {
+  const program = new Command();
+  program
+    .name("code-trio")
+    .description(
+      "Code Trio - offline, deterministic compare/diff, code-aware spell check, and beautify/format.",
+    )
+    .version(pkg.version, "-v, --version");
+
+  program
+    .command("diff")
+    .description("Compare two files, or one file against a git ref")
+    .argument("<a>", "first file (or the file to compare against a ref)")
+    .argument("[b]", "second file")
+    .option("-w, --words", "refine changes at word granularity")
+    .option("--chars", "refine changes at character granularity")
+    .option("--ignore-whitespace", "ignore whitespace differences")
+    .option("--ignore-case", "ignore case differences")
+    .option("--ref <ref>", "compare <a> at a git ref against the working copy")
+    .option("--format <mode>", "output format: terminal | json | unified", "terminal")
+    .option("--context <n>", "unchanged context lines per hunk")
+    .option("--no-color", "disable ANSI colors")
+    .option("--exit-code", "exit 1 when files differ")
+    .action((a: string, b: string | undefined, opts) => {
+      const { config } = loadCliConfig();
+      process.exitCode = runDiffCommand(a, b, opts, config);
+    });
+
+  program
+    .command("spell")
+    .description("Spell check files (comments and strings by default)")
+    .argument("[globs...]", "files or globs to check")
+    .option("--lang <id>", "force a language id for all files")
+    .option("--identifiers", "also check identifiers")
+    .option("--no-comments", "do not check comments")
+    .option("--no-strings", "do not check strings")
+    .option("--severity <level>", "error | warning | information | hint")
+    .option("--format <mode>", "output format: terminal | json", "terminal")
+    .option("--no-color", "disable ANSI colors")
+    .option("--fail-on <level>", "exit 1 when an issue at/above this severity exists", "none")
+    .action((globs: string[], opts) => {
+      const { config, root } = loadCliConfig();
+      const severity = opts.severity as Severity | undefined;
+      process.exitCode = runSpellCommand(globs, { ...opts, severity }, config, root);
+    });
+
+  program
+    .command("format")
+    .description("Beautify files with the formatter orchestrator")
+    .argument("[globs...]", "files or globs to format")
+    .option("--check", "report files that need formatting; exit 1 if any (CI mode)")
+    .option("--write", "write changes back to disk")
+    .option("--lang <id>", "force a language id for all files")
+    .option("--no-color", "disable ANSI colors")
+    .action(async (globs: string[], opts) => {
+      const { config } = loadCliConfig();
+      process.exitCode = await runFormatCommand(globs, opts, config);
+    });
+
+  program
+    .command("init")
+    .description("Create codetrio.json and a project dictionary")
+    .action(() => {
+      process.exitCode = runInitCommand();
+    });
+
+  program
+    .command("doctor")
+    .description("Check the environment (Node, git, Prettier, dictionaries)")
+    .action(async () => {
+      process.exitCode = await runDoctorCommand();
+    });
+
+  program
+    .command("configure")
+    .description("Print the resolved effective configuration")
+    .action(() => {
+      const { config, path } = loadCliConfig();
+      process.exitCode = runConfigureCommand(config, path);
+    });
+
+  return program;
+}
+
+export async function main(argv: string[] = process.argv): Promise<void> {
+  await buildProgram().parseAsync(argv);
+}

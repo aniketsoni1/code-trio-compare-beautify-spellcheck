@@ -1,0 +1,24 @@
+{
+  "name": "@ctr/agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Orchestration seam that wires Code Trio engines to I/O; shared by the CLI and the VS Code extension.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "sideEffects": false,
+  "dependencies": {
+    "@ctr/core": "*",
+    "@ctr/diff-engine": "*",
+    "@ctr/spell-engine": "*",
+    "@ctr/format-engine": "*",
+    "@ctr/formatters": "*",
+    "@ctr/dictionaries": "*",
+    "@ctr/configuration": "*",
+    "@ctr/reporting": "*"
+  }
+}
