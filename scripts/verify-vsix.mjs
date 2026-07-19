@@ -110,7 +110,7 @@ for (const [label, ok] of checks) (ok ? pass : fail)(`manifest ${label}`);
 const textEntries = entries.filter((e) => /\.(json|md|txt|cjs|js|svg)$/.test(e));
 let secretHits = 0;
 for (const entry of textEntries) {
-  let content = "";
+  let content;
   try {
     content = readEntry(vsix, entry);
   } catch {
