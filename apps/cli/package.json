@@ -39,7 +39,7 @@
   },
   "comment": "The published binary is a self-contained esbuild bundle; @ctr/* are dev-time workspace sources resolved via tsconfig paths, not runtime deps.",
   "dependencies": {
-    "commander": "^12.1.0",
+    "commander": "^15.0.0",
     "picocolors": "^1.1.1"
   }
 }
