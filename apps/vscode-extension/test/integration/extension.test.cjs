@@ -5,7 +5,7 @@ const assert = require("node:assert");
 const path = require("node:path");
 const vscode = require("vscode");
 
-const EXTENSION_ID = "aniketsoni1.code-trio-compare-beautify-spellcheck";
+const EXTENSION_ID = "AniketSoni.code-trio-compare-beautify-spellcheck";
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function workspaceFile(rel) {

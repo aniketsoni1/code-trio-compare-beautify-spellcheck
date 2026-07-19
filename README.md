@@ -7,7 +7,7 @@
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" /></a>
   <img alt="Node >= 20" src="https://img.shields.io/badge/node-%3E%3D20-3c873a.svg" />
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-strict-3178c6.svg" />
-  <a href="https://marketplace.visualstudio.com/items?itemName=aniketsoni1.code-trio-compare-beautify-spellcheck"><img alt="VS Marketplace" src="https://img.shields.io/visual-studio-marketplace/v/aniketsoni1.code-trio-compare-beautify-spellcheck?label=marketplace" /></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=AniketSoni.code-trio-compare-beautify-spellcheck"><img alt="VS Marketplace" src="https://img.shields.io/visual-studio-marketplace/v/AniketSoni.code-trio-compare-beautify-spellcheck?label=marketplace" /></a>
   <img alt="Offline" src="https://img.shields.io/badge/network-none-brightgreen.svg" />
 </p>
 

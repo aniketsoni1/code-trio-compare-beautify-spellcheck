@@ -2,7 +2,7 @@
   "name": "code-trio-compare-beautify-spellcheck",
   "displayName": "Code Trio - Compare Beautify Spellcheck",
   "version": "0.1.0",
-  "publisher": "aniketsoni1",
+  "publisher": "AniketSoni",
   "description": "Three offline dev tools in one: code compare/diff, code-aware spell check, and beautify/format. Deterministic, private, no telemetry.",
   "license": "Apache-2.0",
   "author": "aniketsoni1",

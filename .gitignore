@@ -15,9 +15,7 @@ vitest.config.ts.timestamp-*.mjs
 *.timestamp-*.mjs
 
 # Packaging artifacts (built VSIX + checksums are generated, not committed)
-artifacts/*.vsix
-artifacts/*.sha256
-artifacts/*.txt
+artifacts/
 
 # Editor / OS
 .DS_Store
