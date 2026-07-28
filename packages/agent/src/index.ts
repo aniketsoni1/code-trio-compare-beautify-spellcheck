@@ -20,11 +20,21 @@ export {
   type ProjectWords,
 } from "./dictionary-io";
 export {
+  loadDictionaryStack,
+  dictionaryWatchPaths,
+  dictionaryWatchDirectories,
+  dictionaryPathForScope,
+  type DictionaryLocations,
+  type LoadedDictionaries,
+  type DictionarySource,
+} from "./dictionary-scopes";
+export {
   runCompare,
   runThreeWayMerge,
   runMergeAndResolve,
   writeMergedFile,
   runSpell,
+  runSpellScoped,
   runSpellInWorkspace,
   buildSpellDictionary,
   runFormat,

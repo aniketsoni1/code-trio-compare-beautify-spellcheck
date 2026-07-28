@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type {
+  CancellationToken,
   Diagnostic,
   DiffResult,
   Document,
@@ -19,11 +20,21 @@ import {
   type ResolveOptions,
   type ResolveResult,
 } from "@ctr/diff-engine";
-import { spellCheck } from "@ctr/spell-engine";
+import {
+  spellCheck,
+  spellCheckDetailed,
+  type SpellOptions,
+  type SpellRunResult,
+} from "@ctr/spell-engine";
 import { AdapterRegistry, formatDocument } from "@ctr/format-engine";
 import { defaultAdapters } from "@ctr/formatters";
-import { type Dictionary, loadDictionary } from "@ctr/dictionaries";
+import { type Dictionary, builtinWords, loadDictionary } from "@ctr/dictionaries";
 import { loadProjectDictionary, type ProjectWords } from "./dictionary-io";
+import {
+  loadDictionaryStack,
+  type DictionaryLocations,
+  type DictionarySource,
+} from "./dictionary-scopes";
 
 /** Compare two documents using the diff section of a config. */
 export function runCompare(
@@ -120,24 +131,72 @@ export function buildSpellDictionary(
   return loadDictionary(config.spell.dictionaries, extra);
 }
 
+/** Translate a config into the engine's option shape. Shared by every caller. */
+function spellOptions(
+  config: CodeTrioConfig,
+  dictionary: Dictionary,
+  token?: CancellationToken,
+): SpellOptions {
+  return {
+    dictionary,
+    checkComments: config.spell.checkComments,
+    checkStrings: config.spell.checkStrings,
+    checkIdentifiers: config.spell.checkIdentifiers,
+    checkAcronyms: config.spell.checkAcronyms,
+    severity: config.spell.severity,
+    minWordLength: config.spell.minWordLength,
+    maxSuggestions: config.spell.maxSuggestions,
+    ignoreWords: config.spell.ignoreWords,
+    ignorePatterns: config.spell.ignorePatterns,
+    ignoreNoiseTokens: config.spell.ignoreNoiseTokens,
+    maxFileSizeKb: config.spell.maxFileSizeKb,
+    maxDiagnostics: config.spell.maxDiagnostics,
+    // Technical terms outrank equally-distant ordinary words, so in a codebase
+    // "kubernets" suggests "kubernetes" rather than a coincidental near-match.
+    preferredWords: technicalWordSet(config),
+    ...(token ? { token } : {}),
+  };
+}
+
+let technicalCache: ReadonlySet<string> | undefined;
+function technicalWordSet(config: CodeTrioConfig): ReadonlySet<string> | undefined {
+  if (!config.spell.dictionaries.includes("technical")) return undefined;
+  technicalCache ??= new Set(builtinWords("technical"));
+  return technicalCache;
+}
+
 /** Spell check a document with the resolved config and dictionary. */
 export function runSpell(
   doc: Document,
   config: CodeTrioConfig = DEFAULT_CONFIG,
   project?: ProjectWords,
+  token?: CancellationToken,
 ): Diagnostic[] {
   if (!config.spell.enabled) return [];
   const dictionary = buildSpellDictionary(config, project);
-  return spellCheck(doc, {
-    dictionary,
-    checkComments: config.spell.checkComments,
-    checkStrings: config.spell.checkStrings,
-    checkIdentifiers: config.spell.checkIdentifiers,
-    severity: config.spell.severity,
-    minWordLength: config.spell.minWordLength,
-    maxSuggestions: config.spell.maxSuggestions,
-    ignoreWords: config.spell.ignoreWords,
-  });
+  return spellCheck(doc, spellOptions(config, dictionary, token));
+}
+
+/**
+ * Spell check against a scoped dictionary stack, reporting run metadata.
+ *
+ * This is the entry point the extension uses, because it needs to know which
+ * dictionary sources were consulted (to offer "remove from the right file"),
+ * whether the document was skipped and why, and whether the diagnostic cap was
+ * hit.
+ */
+export function runSpellScoped(
+  doc: Document,
+  config: CodeTrioConfig = DEFAULT_CONFIG,
+  locations: DictionaryLocations = {},
+  token?: CancellationToken,
+): SpellRunResult & { sources: readonly DictionarySource[] } {
+  if (!config.spell.enabled) {
+    return { diagnostics: [], truncated: false, invalidPatterns: [], sources: [] };
+  }
+  const { stack, sources } = loadDictionaryStack(config, locations);
+  const result = spellCheckDetailed(doc, spellOptions(config, stack, token));
+  return { ...result, sources };
 }
 
 /** Discover the project dictionary for a workspace root, then spell check. */

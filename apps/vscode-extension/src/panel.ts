@@ -3,6 +3,12 @@ import * as vscode from "vscode";
 export interface ResultSummary {
   readonly spellIssues?: number;
   readonly spellFile?: string;
+  /** Why the document was skipped entirely, if it was. */
+  readonly spellSkipped?: string;
+  /** True when the per-document diagnostic cap was reached. */
+  readonly spellTruncated?: boolean;
+  /** Which dictionary scopes contributed, e.g. "workspace (12), folder (3)". */
+  readonly spellSources?: string;
   readonly lastCompare?: string;
   /** How the last comparison was configured, e.g. "granularity: word, ...". */
   readonly lastCompareDetail?: string;
@@ -47,17 +53,24 @@ export class ResultsProvider implements vscode.TreeDataProvider<ResultNode> {
     const nodes: ResultNode[] = [];
 
     const spellDesc =
-      s.spellIssues === undefined
-        ? "run Spell Check"
-        : s.spellIssues === 0
-          ? "no issues"
-          : `${s.spellIssues} issue${s.spellIssues === 1 ? "" : "s"}${s.spellFile ? ` - ${s.spellFile}` : ""}`;
-    nodes.push(
-      new ResultNode("Spell Check", spellDesc, "book", {
-        command: "codeTrio.spellCheckFile",
-        title: "Spell Check Current File",
-      }),
-    );
+      s.spellSkipped !== undefined
+        ? `skipped (${s.spellSkipped})`
+        : s.spellIssues === undefined
+          ? "run Spell Check"
+          : s.spellIssues === 0
+            ? "no issues"
+            : `${s.spellIssues}${s.spellTruncated ? "+" : ""} issue${s.spellIssues === 1 ? "" : "s"}${s.spellFile ? ` - ${s.spellFile}` : ""}`;
+    const spell = new ResultNode("Spell Check", spellDesc, "book", {
+      command: "codeTrio.spellCheckFile",
+      title: "Spell Check Current File",
+    });
+    // The hover names the dictionaries that were actually consulted, which is
+    // the fastest way to diagnose "why is this word not accepted?".
+    if (s.spellSources) spell.tooltip = `Dictionaries: ${s.spellSources}`;
+    if (s.spellTruncated) {
+      spell.tooltip = `${spell.tooltip ?? ""}\nDiagnostics were capped for this document.`;
+    }
+    nodes.push(spell);
 
     const compare = new ResultNode(
       "Compare",

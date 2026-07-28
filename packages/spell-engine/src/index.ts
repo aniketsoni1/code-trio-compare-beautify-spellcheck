@@ -2,10 +2,24 @@
 import type { Diagnostic, Document, Engine } from "@ctr/core";
 import { spellCheck, type SpellOptions } from "./spell";
 
-export { spellCheck, type SpellOptions } from "./spell";
+export {
+  spellCheck,
+  spellCheckDetailed,
+  type SpellOptions,
+  type SpellRunResult,
+  type SpellSkipReason,
+} from "./spell";
 export { tokenize } from "./tokenizer";
-export { splitIdentifier, wordRuns, type SubWord } from "./split";
-export { suggest, boundedEditDistance } from "./suggest";
+export {
+  splitIdentifier,
+  splitIdentifierForChecking,
+  isAcronym,
+  wordRuns,
+  normalizeForLookup,
+  type SubWord,
+} from "./split";
+export { suggest, boundedEditDistance, applyCase, areKeysAdjacent, type SuggestOptions } from "./suggest";
+export { maskNoise, isNoiseWord, compileIgnorePatterns, type NoiseOptions } from "./noise";
 
 export interface SpellEngineInput {
   readonly document: Document;
