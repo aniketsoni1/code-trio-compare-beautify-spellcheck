@@ -1,7 +1,7 @@
 {
   "name": "code-trio-compare-beautify-spellcheck",
   "displayName": "Code Trio - Compare Beautify Spellcheck",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "AniketSoni",
   "description": "Compare, three-way merge, code-aware spell check, and beautify - in one offline extension. Prettier, Ruff, gofmt, rustfmt. No network calls, no telemetry.",
   "license": "Apache-2.0",

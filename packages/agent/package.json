@@ -1,6 +1,6 @@
 {
   "name": "@ctr/agent",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Orchestration seam that wires Code Trio engines to I/O; shared by the CLI and the VS Code extension.",
   "license": "Apache-2.0",

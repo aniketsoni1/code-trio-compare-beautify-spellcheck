@@ -1,6 +1,6 @@
 {
   "name": "@ctr/dictionaries",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Permissively-licensed base + technical word lists and per-project dictionary discovery for Code Trio.",
   "license": "Apache-2.0",

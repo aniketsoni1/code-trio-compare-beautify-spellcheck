@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.2.1] - 2026-07-28
+
+Patch release superseding 0.2.0. No feature changes.
+
+### Fixed
+
+- Compare against a git ref, and merge from git conflict stages, failed for any
+  repository reached through a symlinked path. This affected macOS in
+  particular, where `/var` is a symlink to `/private/var`, and Windows via 8.3
+  short names.
+
+### Documentation
+
+- Marketplace description and README updated for the v0.2.0 feature set: four
+  tools rather than three, all 32 commands listed, and merge, external
+  formatters and dictionary scopes described.
+- Workspace Trust description now names all three write operations.
+- The welcome view offers a merge action.
+- "Add Word To Project Dictionary" renamed to "Add Word To Dictionary...",
+  since it asks which dictionary scope to use.
+
 ## [0.2.0] - 2026-07-28
 
 ### Added

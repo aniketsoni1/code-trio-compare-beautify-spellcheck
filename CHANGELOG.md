@@ -5,6 +5,37 @@ All notable changes to Code Trio are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The manifest
 version, git tag, and VSIX filename are kept in sync.
 
+## [0.2.1] - 2026-07-28
+
+Patch release. v0.2.0 was published to the Marketplace before these fixes
+landed, so this supersedes it. No feature changes.
+
+### Fixed
+
+- `gitShow` and `conflictStages` returned null for files reached through a
+  symlinked path. `git rev-parse --show-toplevel` always reports a resolved
+  path, so comparing it against an unresolved caller path made a legitimate
+  file inside the work tree look like an escape attempt. This broke git-ref
+  compare and git-stage merge on macOS for any repository under a symlinked
+  directory - including anything under the temp directory, since `/var` is a
+  symlink to `/private/var` - and on Windows via 8.3 short names. Both paths
+  are now canonicalised before the containment check; the check itself is
+  unchanged in strength.
+- Raw control bytes in two test files made them binary to `grep`, so the CI
+  offline audit was silently skipping them. Rewritten as escapes, with a
+  repository-wide guard to stop it recurring.
+
+### Documentation
+
+- The extension's Marketplace description and README described the v0.1.0
+  feature set: "three offline dev tools" rather than four, 10 of 32 commands
+  listed, and no mention of merge, external formatters or dictionary scopes.
+  Keywords omitted `merge conflict`, `ruff`, `gofmt` and `rustfmt`.
+- Workspace Trust text named two write operations; saving a merge is a third.
+- The welcome view offered no route to merge.
+- "Add Word To Project Dictionary" renamed to "Add Word To Dictionary...",
+  since it now asks which scope to write to.
+
 ## [0.2.0] - 2026-07-28
 
 ### Added

@@ -1,6 +1,6 @@
 {
   "name": "@ctr/format-engine",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Adapter registry and deterministic formatting orchestrator for Code Trio. No third-party formatter imports.",
   "license": "Apache-2.0",

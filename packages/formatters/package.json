@@ -1,6 +1,6 @@
 {
   "name": "@ctr/formatters",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Formatter adapters (Prettier and pluggable others) behind a common interface for Code Trio.",
   "license": "Apache-2.0",

@@ -42,7 +42,7 @@ UI. Use the committed `samples/demo-workspace` for a consistent, offline setup.
    ```bash
    npm ci && npm run package:vsix
    code --profile "code-trio-shots" --install-extension \
-     artifacts/code-trio-compare-beautify-spellcheck-0.2.0.vsix
+     artifacts/code-trio-compare-beautify-spellcheck-0.2.1.vsix
    code --profile "code-trio-shots" samples/demo-workspace
    ```
 
