@@ -34,6 +34,8 @@ jobs:
         run: npm run lint
       - name: Unit tests
         run: npm run test:unit
+      - name: CLI smoke tests
+        run: node scripts/cli-smoke.mjs
       - name: Build bundles
         run: npm run build
       - name: Package VSIX
@@ -47,6 +49,113 @@ jobs:
           name: vsix
           path: artifacts/*.vsix
           if-no-files-found: error
+
+  cross-platform:
+    name: cross-platform (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # Path handling, the glob matcher and executable discovery all differ by
+      # platform, and all three are exercised by the unit suite.
+      - name: Unit tests
+        run: npm run test:unit
+      - name: CLI smoke tests
+        run: node scripts/cli-smoke.mjs
+
+  benchmarks:
+    name: benchmarks (informational)
+    runs-on: ubuntu-latest
+    # Never fails the build. Hosted runners are too noisy for a wall-clock
+    # threshold to mean anything; the numbers are here to be read, not gated on.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run benchmarks
+        run: npm run bench -- --runs 5 | tee benchmark-results.txt
+      - name: Publish to the job summary
+        run: |
+          {
+            echo '### Benchmark results'
+            echo '```'
+            cat benchmark-results.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  offline-audit:
+    name: offline and telemetry audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Grep-based rather than test-based on purpose: this must fail even if
+      # someone deletes the test that asserts the same thing.
+      - name: Assert no network clients in shipped source
+        run: |
+          if grep -rnE "\bfetch\(|XMLHttpRequest|new WebSocket|EventSource\(|sendBeacon|require\(['\"]https?['\"]\)|from ['\"]node:https?['\"]|from ['\"](axios|node-fetch|got|undici)['\"]" apps packages --include=*.ts --include=*.mjs; then
+            echo "::error::A network client appears in shipped source. Code Trio is offline-only."
+            exit 1
+          fi
+          echo "No network clients found."
+      - name: Assert no telemetry SDKs
+        run: |
+          if grep -rniE "applicationinsights|@vscode/extension-telemetry|posthog|amplitude|mixpanel|segment\.io|sentry" apps packages --include=*.ts --include=*.json; then
+            echo "::error::A telemetry SDK appears in shipped source."
+            exit 1
+          fi
+          echo "No telemetry SDKs found."
+      - name: Assert the webview loads no remote resource
+        run: |
+          if grep -nE "https?://" apps/vscode-extension/src/webview-html.ts; then
+            echo "::error::The results webview references a remote origin."
+            exit 1
+          fi
+          echo "Webview references no remote origin."
+
+  supply-chain:
+    name: dependency and licence audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # Runtime dependencies only. A dev-only advisory is worth knowing about
+      # but is not a reason to block a release of a tool that ships a bundle.
+      - name: Audit runtime dependencies
+        run: npm audit --omit=dev --audit-level=high
+      - name: Report all advisories (informational)
+        continue-on-error: true
+        run: npm audit || true
+      - name: Check for licence changes in runtime dependencies
+        run: |
+          npm ls --omit=dev --all --json > deps.json || true
+          node -e "
+            const fs = require('fs');
+            const seen = new Set();
+            const walk = (node) => {
+              for (const [name, info] of Object.entries(node.dependencies || {})) {
+                seen.add(name);
+                walk(info);
+              }
+            };
+            walk(JSON.parse(fs.readFileSync('deps.json', 'utf8')));
+            console.log('Runtime dependencies:', [...seen].sort().join(', ') || '(none)');
+          "
 
   e2e:
     name: extension integration tests

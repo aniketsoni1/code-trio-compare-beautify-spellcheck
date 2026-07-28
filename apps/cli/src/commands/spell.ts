@@ -2,7 +2,8 @@ import type { CodeTrioConfig } from "@ctr/configuration";
 import type { Diagnostic, Severity } from "@ctr/core";
 import { loadFileDocument, loadProjectDictionary, runSpell } from "@ctr/agent";
 import { renderDiagnosticsTerminal } from "@ctr/reporting";
-import { expandGlobs } from "../glob";
+import { expandGlobsDetailed } from "../glob";
+import { ExitCode, type ExitCodeValue } from "../exit-codes";
 
 export interface SpellCommandOptions {
   lang?: string;
@@ -36,11 +37,23 @@ export function runSpellCommand(
   cfg: CodeTrioConfig,
   root: string,
   cwd: string = process.cwd(),
-): number {
-  const files = expandGlobs(globs.length > 0 ? globs : ["**/*"], cwd);
+): ExitCodeValue {
+  const expansion = expandGlobsDetailed(globs.length > 0 ? globs : ["**/*"], cwd, {
+    // The extension honours ignoreGlobs; the CLI must agree or the same config
+    // produces different results in the two surfaces.
+    exclude: cfg.spell.ignoreGlobs,
+  });
+  const files = expansion.files;
   if (files.length === 0) {
+    // Distinct from an argument error: the command was well-formed, it simply
+    // matched nothing.
     process.stderr.write("error: no files matched\n");
-    return 2;
+    return ExitCode.NoInput;
+  }
+  if (expansion.truncated) {
+    process.stderr.write(
+      `warning: file list was capped at ${files.length}; some files were not checked\n`,
+    );
   }
   const config = applyOverrides(cfg, opts);
   const project = loadProjectDictionary(root, config.spell.projectDictionaryPath);
@@ -72,7 +85,9 @@ export function runSpellCommand(
 
   if (opts.failOn && opts.failOn !== "none") {
     const threshold = SEVERITY_RANK[opts.failOn as Severity] ?? SEVERITY_RANK.information;
-    if (worst >= threshold) return 1;
+    // `worst` starts at -1, so a clean run never reaches the threshold even for
+    // --fail-on hint, whose rank is 0.
+    if (worst >= threshold) return ExitCode.Findings;
   }
-  return 0;
+  return expansion.truncated ? ExitCode.PartialSuccess : ExitCode.Success;
 }
