@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { MergeChoice } from "@ctr/core";
 import { renderMerge, resolveMerge, threeWayMerge } from "../src/merge";
 
 const BASE = "a\nbase\nc\n";
@@ -126,7 +127,7 @@ describe("resolveMerge", () => {
   it("applies each choice", () => {
     const r = threeWayMerge(BASE, OURS, THEIRS);
     const id = r.conflictIds[0] as string;
-    const pick = (choice: Parameters<typeof resolveMerge>[1][number]["choice"]): string =>
+    const pick = (choice: MergeChoice): string =>
       resolveMerge(r, [{ regionId: id, choice }]).text;
 
     expect(pick("ours")).toBe("a\nours\nc\n");
