@@ -23,15 +23,17 @@ Most teams stitch these three jobs together from separate extensions and CLIs th
 
 ## Features
 
-Compare / Diff - two-way and three-way diff at line, word, or character granularity, with ignore-whitespace and ignore-case options. Compare two files, a file against the clipboard, or a file against any git ref. A minimal Myers algorithm keeps large-file diffs quick.
+Compare / Diff - two-way diff at line, word, or character granularity, with ignore-whitespace, ignore-case and ignore-line-ending options. Compare two files, two files selected in the Explorer, a file against the clipboard, a selection against the clipboard, an unsaved buffer against the version on disk, or a file against any git ref. Word and character refinement is Unicode-correct, so accented characters and emoji sequences are never split mid-glyph. Binary, oversized and minified inputs are refused or downgraded with an explicit reason rather than silently mishandled.
 
-Spell Check - tokenizes source into identifiers, comments, and strings, and splits `camelCase`, `snake_case`, `kebab-case`, and `SCREAMING_CASE` before checking. Only comments and strings are checked by default (identifiers are opt-in), so the noise stays low. Ships a base English + technical dictionary, honors a checked-in project dictionary, and offers quick-fix suggestions plus "add to dictionary".
+Three-way merge - diff3 with conflict navigation, accept ours / theirs / both / base, manual resolution, and a preview before anything is written. Reads git's conflict stages directly, so it works on a real conflicted working tree. Saving writes to a new file by default and refuses outright while any conflict is unresolved. Git staging is never touched.
 
-Beautify / Format - a formatter orchestrator that wraps Prettier behind an adapter (with a safe whitespace-normalizer fallback for other languages). Deterministic output, a dry-run diff preview before anything is written, format-on-command, and opt-in format-on-save. Formatter versions are pinned and recorded for reproducibility.
+Spell Check - tokenizes source into identifiers, comments, and strings, and splits `camelCase`, `snake_case`, `kebab-case`, and `SCREAMING_CASE` before checking. Only comments and strings are checked by default (identifiers are opt-in). URLs, file paths, hashes, UUIDs, hex values, versions, timestamps and base64 blobs are suppressed before any word is extracted, which cut false positives from 28 to 9 on a fixture of realistic comments. Six dictionary scopes with documented precedence, including per-folder dictionaries for monorepos and multi-root workspaces.
+
+Beautify / Format - a capability-aware adapter system. Prettier is bundled; Ruff, Black, gofmt, rustfmt and clang-format are used when you already have them installed. Nothing is ever downloaded, and a missing formatter says so instead of silently falling through. Deterministic output, a dry-run diff preview before anything is written, opt-in format-on-save, and workspace-wide formatting behind an explicit confirmation. Formatter versions and resolved executable paths are recorded for reproducibility.
 
 ## Screenshots
 
-> The images below are representative renders produced by `npm run assets`. See [docs/media.md](docs/media.md) for the exact checklist to capture live screenshots from the running extension.
+> **These are representative renders produced by `npm run assets`, not screenshots of the running extension.** They illustrate the layout; they are not evidence of behaviour. [docs/media.md](docs/media.md) has the checklist for capturing genuine screenshots.
 
 | Unified results panel | Two-way compare |
 | --- | --- |
@@ -87,15 +89,32 @@ code-trio format "src/**/*.ts" --write
 code-trio init
 code-trio doctor
 code-trio configure
+
+# Three-way merge, including directly on a conflicted working-tree file
+code-trio merge --base b.txt --ours o.txt --theirs t.txt
+code-trio merge conflicted.ts --git --accept ours -o merged.ts
+
+# Which formatters are actually available on this machine
+code-trio formatters
+
+# Dictionary scopes
+code-trio dictionary list
+code-trio dictionary check kubernetes
+
+# Combined report, in the same format the results panel exports
+code-trio report "src/**/*.ts" --format markdown
+
+# The stable exit-code table
+code-trio exit-codes
 ```
 
 Full reference: [docs/cli.md](docs/cli.md).
 
 ## Extension usage
 
-Commands (Command Palette, all prefixed `Code Trio:`): Compare Active File With File / Clipboard / Git Ref, Spell Check Current File / Workspace, Fix All Spelling In File, Beautify Document, Preview Beautify Changes, Beautify Changed Files Only, and Show Results Panel.
+31 commands, all prefixed `Code Trio:`. Compare against a file, two Explorer selections, the clipboard, a selection, the saved version on disk, a git ref, or the previous revision. Merge from git stages or three chosen files, with next/previous conflict navigation. Spell check a file or the workspace, fix all, add to a chosen dictionary scope, ignore for the session, open any dictionary, and show which sources were consulted. Beautify a document, preview it, beautify changed files or the whole workspace, and show which formatters are available.
 
-Default keybindings: `Ctrl/Cmd+Alt+B` previews beautify, `Ctrl/Cmd+Alt+S` spell-checks the current file.
+Default keybindings: `Ctrl/Cmd+Alt+B` previews beautify, `Ctrl/Cmd+Alt+S` spell-checks the current file, `Ctrl/Cmd+Alt+]` and `[` move between merge conflicts.
 
 ## Configuration
 
@@ -114,7 +133,11 @@ Full reference: [docs/configuration.md](docs/configuration.md).
 
 ## Privacy and security
 
-Code Trio never opens a network connection and collects no telemetry. Formatting and diffing are pure computations. The only operations that touch your files are explicit writes - applying a format and editing the project dictionary - and both are modeled as auditable write tools. In VS Code they are disabled in untrusted workspaces (the extension declares `limited` Workspace Trust support) and every webview uses a strict Content Security Policy. See [SECURITY.md](SECURITY.md).
+Code Trio never opens a network connection and collects no telemetry. Formatting and diffing are pure computations. The only operations that touch your files are explicit writes - applying a format, editing a dictionary, and saving a merge - and all are modeled as auditable write tools. In VS Code they are disabled in untrusted workspaces (the extension declares `limited` Workspace Trust support).
+
+The results panel is a webview under a strict Content Security Policy: `default-src 'none'`, scripts and styles allowed only via a per-load nonce, no `unsafe-inline`, and no remote origin of any kind. Messages from the webview are validated at runtime against a schema rather than merely typed, and the webview can only request actions you could already invoke from the Command Palette. Git and external formatters are invoked with argument arrays and a minimal environment, never through a shell.
+
+These are not aspirations: each is asserted by a test. See [SECURITY.md](SECURITY.md) and the full threat review in [docs/security-review.md](docs/security-review.md).
 
 ## Architecture
 
@@ -129,17 +152,21 @@ packages/   core  diff-engine  spell-engine  format-engine  reporting
 samples/ docs/ .github/ scripts/ assets/
 ```
 
+Performance is measured, not asserted: `npm run bench` runs an offline,
+deterministic suite and [docs/performance.md](docs/performance.md) records the
+results.
+
 ## Project dictionary
 
 Teams share custom words through a checked-in `.codetrio/dictionary.txt` (one word per line; `#` comments; prefix `!` to force-allow a word). The built-in base and technical word lists are original, curated for Code Trio, and dedicated to the public domain under CC0-1.0 - see [docs/dictionaries.md](docs/dictionaries.md) for provenance.
 
 ## Limitations
 
-The bundled dictionary is a common-word baseline (about 1,200 words) rather than a full English lexicon; extend it per project. The spell tokenizer is a pragmatic scanner, not a full language parser, so exotic string/comment syntaxes may be approximated. The Prettier adapter covers JS/TS/JSON/CSS/Markdown/YAML/HTML; other languages fall back to a safe whitespace normalizer. Git-ref compare requires a local git binary.
+The bundled dictionary is a common-word baseline (about 1,200 words) rather than a full English lexicon, so ordinary words are sometimes flagged; extend it per project. The spell tokenizer is a pragmatic scanner, not a full language parser, so exotic string/comment syntaxes may be approximated. The Prettier adapter covers JS/TS/JSON/CSS/Markdown/YAML/HTML; external formatters are used only if you already have them installed, and other languages fall back to a safe whitespace normalizer. Git-ref compare and git-stage merge require a local git binary. Character-granularity diffs of very long lines are slow by nature and are downgraded automatically for minified input. Code Trio does not verify the identity of a formatter executable you configure.
 
 ## Roadmap
 
-Richer three-way merge UX, more formatter adapters (Ruff, gofmt, rustfmt), an optional Language Server so other editors can reuse the engines, per-folder dictionary overrides, and a large-file benchmark suite. Tracked in the issues.
+An optional Language Server so other editors can reuse the engines, frequency-tiered suggestion ranking, and additional formatter adapters. Three-way merge UX, Ruff/gofmt/rustfmt adapters, per-folder dictionaries and the benchmark suite all shipped in v0.2.0.
 
 ## Contributing
 
