@@ -102,7 +102,17 @@ const checks = [
   ["repository.url", Boolean(manifest.repository?.url)],
   ["categories", Array.isArray(manifest.categories) && manifest.categories.length > 0],
   ["main", manifest.main === "./out/extension.cjs"],
-  ["activationEvents narrow", JSON.stringify(manifest.activationEvents) === JSON.stringify(["onView:codeTrio.resultsView"])],
+  // Asserted as a property rather than an exact list. v0.2.0 added a second
+  // view, and pinning the literal array turned an ordinary contribution into a
+  // release blocker. What actually matters is that Code Trio never activates in
+  // a window where it is not used: no wildcard, and every trigger is a Code
+  // Trio view the user opened deliberately.
+  [
+    "activationEvents narrow",
+    Array.isArray(manifest.activationEvents) &&
+      manifest.activationEvents.length > 0 &&
+      manifest.activationEvents.every((e) => e.startsWith("onView:codeTrio.")),
+  ],
 ];
 for (const [label, ok] of checks) (ok ? pass : fail)(`manifest ${label}`);
 
