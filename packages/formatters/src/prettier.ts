@@ -125,7 +125,12 @@ export class PrettierAdapter implements FormatterAdapter {
       // Prettier's syntax errors carry a location that is genuinely useful, but
       // its raw message includes a code frame that is noise in a notification.
       const message = err instanceof Error ? err.message.split("\n")[0] : String(err);
-      throw new Error(`Prettier could not parse this ${doc.languageId} document: ${message}`);
+      throw new Error(`Prettier could not parse this ${doc.languageId} document: ${message}`, {
+        // The original carries the parse location, which is worth keeping for
+        // anyone inspecting the error programmatically even though the
+        // user-facing message is deliberately just the first line.
+        cause: err,
+      });
     }
   }
 }
