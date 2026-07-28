@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
-import { ResultsProvider } from "./panel";
+import { ResultsProvider, type ResultSummary } from "./panel";
+import { ResultsPanel } from "./results-panel";
 import { SpellManager } from "./diagnostics";
 import { SCHEME, VirtualDocProvider } from "./virtualDocs";
 import {
@@ -25,6 +26,9 @@ import {
 
 export function activate(context: vscode.ExtensionContext): void {
   const results = new ResultsProvider();
+  // The webview panel is the v0.2.0 unified surface; ResultsProvider remains as
+  // the compact summary feed the individual features write to.
+  const panel = new ResultsPanel(context.extensionUri);
   const virtualDocs = new VirtualDocProvider();
   const spell = new SpellManager(results);
   const merge = new MergeManager(results, virtualDocs);
@@ -32,7 +36,14 @@ export function activate(context: vscode.ExtensionContext): void {
   dictionaries.refresh();
 
   context.subscriptions.push(
-    vscode.window.registerTreeDataProvider("codeTrio.resultsView", results),
+    vscode.window.registerWebviewViewProvider(ResultsPanel.viewType, panel, {
+      // Keeping the webview alive across hide/show is what preserves the user's
+      // tab, filter and sort without the host having to store UI state.
+      webviewOptions: { retainContextWhenHidden: true },
+    }),
+    vscode.window.registerTreeDataProvider("codeTrio.summaryView", results),
+    panel,
+    results.onDidChangeSummary((summary) => publishSummary(panel, summary)),
     vscode.workspace.registerTextDocumentContentProvider(SCHEME, virtualDocs),
     vscode.languages.registerCodeActionsProvider({ scheme: "*" }, spell, SpellManager.metadata),
     spell,
@@ -124,12 +135,16 @@ export function activate(context: vscode.ExtensionContext): void {
     "codeTrio.formatChangedFiles": () => formatChangedFiles(results),
     "codeTrio.formatWorkspace": () => formatWorkspace(results),
     "codeTrio.showFormatters": () => showFormatterStatus(),
-    "codeTrio.showPanel": () => vscode.commands.executeCommand("codeTrio.resultsView.focus"),
+    "codeTrio.showPanel": () => panel.show(),
+    "codeTrio.exportResults": () => vscode.commands.executeCommand("codeTrio.showPanel"),
     "codeTrio.refreshResults": () => {
       const doc = activeDocument();
       if (doc) spell.checkNow(doc);
     },
-    "codeTrio.clearResults": () => results.clear(),
+    "codeTrio.clearResults": () => {
+      results.clear();
+      panel.clear();
+    },
   };
   for (const [id, handler] of Object.entries(commands)) {
     context.subscriptions.push(vscode.commands.registerCommand(id, handler));
@@ -176,6 +191,33 @@ async function spellCheckWorkspace(spell: SpellManager): Promise<void> {
   void vscode.window.showInformationMessage(
     `Code Trio: spell checked ${files.length} file(s). See the Problems panel.`,
   );
+}
+
+/**
+ * Mirror the compact summary into the webview panel.
+ *
+ * The features write one-line summaries to ResultsProvider; this translates
+ * them into the panel's tool-state model so both surfaces always agree. Doing
+ * it in one place means a feature never has to remember to update two things.
+ */
+function publishSummary(panel: ResultsPanel, summary: ResultSummary): void {
+  if (summary.lastCompare !== undefined) {
+    panel.setSummary("compare", summary.lastCompare);
+  }
+  if (summary.lastMerge !== undefined) {
+    panel.setSummary("merge", summary.lastMerge);
+  }
+  if (summary.lastFormat !== undefined) {
+    panel.setSummary("beautify", summary.lastFormat);
+  }
+  if (summary.spellIssues !== undefined || summary.spellSkipped !== undefined) {
+    const text = summary.spellSkipped
+      ? `skipped (${summary.spellSkipped})`
+      : `${summary.spellIssues ?? 0} issue(s)${summary.spellFile ? ` in ${summary.spellFile}` : ""}`;
+    panel.setSummary("spell", text, summary.spellSkipped ? "partial" : "success");
+    if (summary.spellSources) panel.setNote(`Dictionaries: ${summary.spellSources}`);
+    panel.setTruncated(summary.spellTruncated === true);
+  }
 }
 
 export function deactivate(): void {

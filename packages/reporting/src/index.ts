@@ -24,3 +24,11 @@ export {
   summarizeFormat,
   type DiagnosticsRenderOptions,
 } from "./diagnostics-report";
+export {
+  renderPanelMarkdown,
+  renderPanelJson,
+  renderPanelText,
+  formatResultLine,
+  formatLocation,
+  type PanelReportOptions,
+} from "./panel-report";
