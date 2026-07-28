@@ -4,6 +4,9 @@ export interface ResultSummary {
   readonly spellIssues?: number;
   readonly spellFile?: string;
   readonly lastCompare?: string;
+  /** How the last comparison was configured, e.g. "granularity: word, ...". */
+  readonly lastCompareDetail?: string;
+  readonly lastMerge?: string;
   readonly lastFormat?: string;
 }
 
@@ -56,10 +59,24 @@ export class ResultsProvider implements vscode.TreeDataProvider<ResultNode> {
       }),
     );
 
-    nodes.push(
-      new ResultNode("Compare", s.lastCompare ?? "compare a file", "git-compare", {
+    const compare = new ResultNode(
+      "Compare",
+      s.lastCompare ?? "compare a file",
+      "git-compare",
+      {
         command: "codeTrio.compareWith",
         title: "Compare Active File With File...",
+      },
+    );
+    // The hover carries the comparison settings so the summary number can be
+    // interpreted without guessing which options produced it.
+    if (s.lastCompareDetail) compare.tooltip = s.lastCompareDetail;
+    nodes.push(compare);
+
+    nodes.push(
+      new ResultNode("Merge", s.lastMerge ?? "three-way merge", "git-merge", {
+        command: "codeTrio.mergeFromGit",
+        title: "Merge Conflicted File (Git)",
       }),
     );
 
