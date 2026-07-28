@@ -3,7 +3,8 @@ import { languageFromPath } from "@ctr/core";
 import { applyFormatToFile, loadFileDocument, registryFor, runFormat } from "@ctr/agent";
 import { summarizeFormat } from "@ctr/reporting";
 import pc from "picocolors";
-import { expandGlobs } from "../glob";
+import { expandGlobsDetailed } from "../glob";
+import { ExitCode, type ExitCodeValue } from "../exit-codes";
 
 export interface FormatCommandOptions {
   check?: boolean;
@@ -17,11 +18,21 @@ export async function runFormatCommand(
   opts: FormatCommandOptions,
   cfg: CodeTrioConfig,
   cwd: string = process.cwd(),
-): Promise<number> {
-  const files = expandGlobs(globs.length > 0 ? globs : ["**/*"], cwd);
+): Promise<ExitCodeValue> {
+  const expansion = expandGlobsDetailed(globs.length > 0 ? globs : ["**/*"], cwd, {
+    exclude: cfg.spell.ignoreGlobs,
+  });
+  const files = expansion.files;
   if (files.length === 0) {
+    // Distinct from an argument error: the command was well-formed, it simply
+    // matched nothing. A CI script needs to tell a typo from an empty glob.
     process.stderr.write("error: no files matched\n");
-    return 2;
+    return ExitCode.NoInput;
+  }
+  if (expansion.truncated) {
+    process.stderr.write(
+      `warning: file list was capped at ${files.length}; some files were not processed\n`,
+    );
   }
   const color = opts.color ?? true;
   const registry = registryFor(cfg);
@@ -46,12 +57,14 @@ export async function runFormatCommand(
 
   if (opts.write) {
     process.stdout.write(`\nFormatted ${wrote} of ${files.length} file(s).\n`);
-    return 0;
+    return expansion.truncated ? ExitCode.PartialSuccess : ExitCode.Success;
   }
   if (opts.check) {
     process.stdout.write(`\n${needsFormat} of ${files.length} file(s) need formatting.\n`);
-    return needsFormat > 0 ? 1 : 0;
+    return needsFormat > 0 ? ExitCode.Findings : ExitCode.Success;
   }
-  process.stdout.write(`\n${needsFormat} of ${files.length} file(s) would change. Use --write to apply.\n`);
-  return 0;
+  process.stdout.write(
+    `\n${needsFormat} of ${files.length} file(s) would change. Use --write to apply.\n`,
+  );
+  return ExitCode.Success;
 }
