@@ -3,7 +3,7 @@
   "displayName": "Code Trio - Compare Beautify Spellcheck",
   "version": "0.2.0",
   "publisher": "AniketSoni",
-  "description": "Three offline dev tools in one: code compare/diff, code-aware spell check, and beautify/format. Deterministic, private, no telemetry.",
+  "description": "Compare, three-way merge, code-aware spell check, and beautify - in one offline extension. Prettier, Ruff, gofmt, rustfmt. No network calls, no telemetry.",
   "license": "Apache-2.0",
   "author": "aniketsoni1",
   "icon": "media/icon.png",
@@ -34,13 +34,20 @@
     "diff",
     "compare",
     "merge",
+    "merge conflict",
+    "three-way merge",
     "spell check",
     "spellcheck",
+    "dictionary",
     "formatter",
     "beautify",
     "prettier",
+    "ruff",
+    "gofmt",
+    "rustfmt",
     "offline",
-    "privacy"
+    "privacy",
+    "no telemetry"
   ],
   "engines": {
     "vscode": "^1.90.0",
@@ -51,11 +58,11 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "description": "In untrusted workspaces Code Trio runs read-only: compare and spell diagnostics work, but applying formatting and writing to the project dictionary are disabled."
+      "description": "In untrusted workspaces Code Trio runs read-only: compare, three-way merge review and spell diagnostics all work, but applying formatting, writing to a dictionary and saving a merged file are disabled."
     },
     "virtualWorkspaces": {
       "supported": "limited",
-      "description": "Compare and spell check work in virtual workspaces; git-ref compare and format-on-save may be unavailable."
+      "description": "Compare and spell check work in virtual workspaces; git-ref compare, git-stage merge, external formatters and format-on-save may be unavailable."
     }
   },
   "activationEvents": [
@@ -148,7 +155,7 @@
       },
       {
         "command": "codeTrio.spellAddWord",
-        "title": "Add Word To Project Dictionary",
+        "title": "Add Word To Dictionary...",
         "category": "Code Trio"
       },
       {
@@ -258,7 +265,7 @@
     "viewsWelcome": [
       {
         "view": "codeTrio.summaryView",
-        "contents": "Code Trio bundles three offline tools: compare, spell check, and beautify.\n[Compare Active File](command:codeTrio.compareWith)\n[Spell Check File](command:codeTrio.spellCheckFile)\n[Beautify Document](command:codeTrio.formatDocument)\nAll processing happens locally with no network calls."
+        "contents": "Code Trio bundles four offline tools: compare, three-way merge, spell check, and beautify.\n[Compare Active File](command:codeTrio.compareWith)\n[Merge Conflicted File](command:codeTrio.mergeFromGit)\n[Spell Check File](command:codeTrio.spellCheckFile)\n[Beautify Document](command:codeTrio.formatDocument)\nAll processing happens locally with no network calls."
       }
     ],
     "menus": {
@@ -504,7 +511,7 @@
         "codeTrio.spell.projectDictionaryPath": {
           "type": "string",
           "default": ".codetrio/dictionary.txt",
-          "description": "Workspace-relative path to the shared project dictionary.",
+          "description": "Workspace-relative path to the workspace-scope dictionary, shared by the whole team. Folder and user dictionaries are configured separately and take precedence over it.",
           "scope": "resource"
         },
         "codeTrio.spell.folderDictionaryPath": {
