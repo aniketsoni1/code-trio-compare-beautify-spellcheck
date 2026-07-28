@@ -1,6 +1,6 @@
 {
   "name": "@ctr/core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Code Trio shared model, Zod schemas, engine/adapter contracts, language registry, and permission model.",
   "license": "Apache-2.0",
