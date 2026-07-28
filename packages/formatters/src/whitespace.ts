@@ -1,4 +1,10 @@
-import type { AdapterFormatOutput, Document, FormatterAdapter } from "@ctr/core";
+import type {
+  AdapterFormatOutput,
+  Document,
+  FormatterAdapter,
+  FormatterAvailability,
+  FormatterCapabilities,
+} from "@ctr/core";
 import { detectEol } from "@ctr/core";
 
 /**
@@ -10,6 +16,23 @@ import { detectEol } from "@ctr/core";
 export class WhitespaceAdapter implements FormatterAdapter {
   readonly name = "whitespace-normalizer";
   readonly version = "1.0.0";
+
+  readonly capabilities: FormatterCapabilities = {
+    id: "whitespace-normalizer",
+    displayName: "Whitespace normalizer",
+    // Claims every language deliberately: it is the universal last resort, and
+    // the registry relies on it being last in the chain.
+    languages: [],
+    bundled: true,
+    rangeFormatting: false,
+    needsFilePath: false,
+    configDiscovery: false,
+    cancellable: false,
+  };
+
+  probe(): Promise<FormatterAvailability> {
+    return Promise.resolve({ available: true, version: this.version, source: "bundled" });
+  }
 
   supports(_languageId: string): boolean {
     return true;

@@ -214,6 +214,34 @@ export function defaultRegistry(): AdapterRegistry {
   return new AdapterRegistry(defaultAdapters());
 }
 
+/**
+ * Build a registry honouring the format section of a config.
+ *
+ * Per-adapter executable paths are passed through so a user on a machine
+ * without a global install can point Code Trio at a virtualenv's ruff without
+ * changing PATH for their whole shell.
+ */
+export function registryFor(config: CodeTrioConfig = DEFAULT_CONFIG): AdapterRegistry {
+  const paths = config.format.externalFormatterPaths;
+  const adapters = defaultAdapters({
+    external: {
+      disabled: !config.format.externalFormatters,
+      timeoutMs: config.format.externalTimeoutMs,
+    },
+    preferred: config.format.preferredFormatters,
+  });
+  // Re-create the external adapters with their own configured path, if any.
+  for (const adapter of adapters) {
+    const id = adapter.capabilities?.id;
+    if (!id) continue;
+    const configured = paths[id];
+    if (!configured) continue;
+    const withPath = adapter as unknown as { config?: { executablePath?: string } };
+    if (withPath.config) withPath.config.executablePath = configured;
+  }
+  return new AdapterRegistry(adapters);
+}
+
 /** Format a document (dry run) with the format section of a config. */
 export function runFormat(
   doc: Document,

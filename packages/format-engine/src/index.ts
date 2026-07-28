@@ -8,7 +8,7 @@ import type { Document, FormatResult, Engine } from "@ctr/core";
 import { type AdapterRegistry } from "./registry";
 import { formatDocument, type FormatEngineOptions } from "./format";
 
-export { AdapterRegistry } from "./registry";
+export { AdapterRegistry, type AdapterReport } from "./registry";
 export { formatDocument, type FormatEngineOptions } from "./format";
 
 export interface FormatEngineInput {
