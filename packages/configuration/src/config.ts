@@ -12,6 +12,27 @@ export const DiffConfigSchema = z.object({
   ignoreWhitespace: z.boolean().default(false),
   ignoreCase: z.boolean().default(false),
   contextLines: z.number().int().min(0).max(50).default(3),
+  /**
+   * Treat CRLF, LF and CR as equivalent.
+   *
+   * Off by default: a line-ending change is a real change a reviewer may need
+   * to see. Turning it on is the right move on a mixed-platform team where
+   * checkout normalisation would otherwise mark every line as modified.
+   */
+  ignoreEol: z.boolean().default(false),
+  /**
+   * Refuse to compare inputs above this many lines. Beyond roughly this size a
+   * textual diff stops being useful to read, and the memory cost of the edit
+   * script grows faster than the value of the output.
+   */
+  maxLines: z.number().int().min(1_000).max(5_000_000).default(300_000),
+  /** Refuse to compare inputs above this many bytes. */
+  maxBytes: z
+    .number()
+    .int()
+    .min(64 * 1024)
+    .max(512 * 1024 * 1024)
+    .default(20 * 1024 * 1024),
 });
 
 export const SpellConfigSchema = z.object({
