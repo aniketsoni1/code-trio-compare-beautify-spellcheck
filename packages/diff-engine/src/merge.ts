@@ -55,13 +55,15 @@ class RegionBuilder {
    * Append a clean region.
    *
    * Adjacent clean regions are coalesced so a merge of a file with one conflict
-   * yields three regions (clean, conflict, clean) rather than one per matched
-   * line. That keeps region ids meaningful as navigation targets.
+   * yields a handful of regions rather than one per matched line. That keeps
+   * region ids meaningful as navigation targets.
    *
-   * Coalescing keeps the *first* region's origin. A run that begins as
-   * "unchanged" and continues with an "ours" edit is reported as unchanged,
-   * which understates it; the conservative direction, since origin is
-   * explanatory metadata and the resolved text is unaffected either way.
+   * Coalescing only merges runs that share an origin. Merging across origins
+   * would make `origin` almost useless in practice: nearly every file starts
+   * with an unchanged line, so a single leading "unchanged" region would absorb
+   * every subsequent "ours" and "theirs" run and report the whole file as
+   * untouched. Keeping the boundary costs a few extra regions and buys an
+   * accurate answer to "who changed this, and did I need to decide anything?".
    */
   pushClean(
     lines: readonly string[],
@@ -70,7 +72,7 @@ class RegionBuilder {
   ): void {
     if (lines.length === 0) return;
     const last = this.regions[this.regions.length - 1];
-    if (last && !last.conflict) {
+    if (last && !last.conflict && last.origin === origin) {
       const merged = [...(last.resolved ?? []), ...lines];
       this.regions[this.regions.length - 1] = {
         ...last,
