@@ -4,7 +4,16 @@
  * CLI and the VS Code extension so no feature logic is duplicated.
  */
 export { makeDocument, loadFileDocument, textDocument } from "./documents";
-export { gitShow, gitAvailable } from "./git";
+export {
+  gitShow,
+  gitAvailable,
+  gitRoot,
+  resolveRef,
+  changedFiles,
+  conflictStages,
+  isSafeGitRef,
+  UnsafeGitRefError,
+} from "./git";
 export {
   loadProjectDictionary,
   appendProjectDictionaryWord,
@@ -13,6 +22,8 @@ export {
 export {
   runCompare,
   runThreeWayMerge,
+  runMergeAndResolve,
+  writeMergedFile,
   runSpell,
   runSpellInWorkspace,
   buildSpellDictionary,

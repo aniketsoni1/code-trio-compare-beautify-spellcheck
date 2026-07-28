@@ -2,19 +2,30 @@ import * as vscode from "vscode";
 import { ResultsProvider } from "./panel";
 import { SpellManager } from "./diagnostics";
 import { SCHEME, VirtualDocProvider } from "./virtualDocs";
-import { compareWithClipboard, compareWithFile, compareWithGitRef } from "./compare";
+import {
+  compareSelected,
+  compareSelectionWithClipboard,
+  compareWithClipboard,
+  compareWithFile,
+  compareWithGitRef,
+  compareWithPreviousRevision,
+  compareWithSaved,
+} from "./compare";
+import { MergeManager } from "./merge";
 import { formatActiveDocument, formatChangedFiles, onWillSaveEdits, previewFormat } from "./format";
 
 export function activate(context: vscode.ExtensionContext): void {
   const results = new ResultsProvider();
   const virtualDocs = new VirtualDocProvider();
   const spell = new SpellManager(results);
+  const merge = new MergeManager(results, virtualDocs);
 
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider("codeTrio.resultsView", results),
     vscode.workspace.registerTextDocumentContentProvider(SCHEME, virtualDocs),
     vscode.languages.registerCodeActionsProvider({ scheme: "*" }, spell, SpellManager.metadata),
     spell,
+    merge,
     virtualDocs,
   );
 
@@ -23,8 +34,21 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const commands: Record<string, (...args: unknown[]) => unknown> = {
     "codeTrio.compareWith": () => compareWithFile(results),
+    "codeTrio.compareSelected": (clicked, selection) =>
+      compareSelected(results, clicked as vscode.Uri | undefined, selection as vscode.Uri[]),
     "codeTrio.compareWithClipboard": () => compareWithClipboard(results, virtualDocs),
+    "codeTrio.compareSelectionWithClipboard": () =>
+      compareSelectionWithClipboard(results, virtualDocs),
+    "codeTrio.compareWithSaved": () => compareWithSaved(results, virtualDocs),
     "codeTrio.compareWithGitRef": () => compareWithGitRef(results, virtualDocs),
+    "codeTrio.compareWithPreviousRevision": () =>
+      compareWithPreviousRevision(results, virtualDocs),
+    "codeTrio.mergeFromGit": () => merge.startFromGit(),
+    "codeTrio.mergeFiles": () => merge.startFromFiles(),
+    "codeTrio.mergeNextConflict": () => merge.nextConflict(),
+    "codeTrio.mergePreviousConflict": () => merge.previousConflict(),
+    "codeTrio.mergePreview": () => merge.preview(),
+    "codeTrio.mergeSave": () => merge.save(),
     "codeTrio.spellCheckFile": () => {
       const doc = activeDocument();
       if (doc) spell.checkNow(doc);

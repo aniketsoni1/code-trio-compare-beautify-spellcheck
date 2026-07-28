@@ -115,25 +115,116 @@ export interface DiffStats {
   readonly unchanged: number;
 }
 
+/** Why a diff stopped short of a complete result. */
+export type DiffTruncationReason =
+  | "max-lines"
+  | "max-length"
+  | "binary"
+  | "minified"
+  | "cancelled";
+
+/** Disclosure that a result is incomplete, and why. */
+export interface DiffTruncation {
+  readonly reason: DiffTruncationReason;
+  /** Human-readable explanation suitable for direct display. */
+  readonly message: string;
+  /** The limit that was exceeded, when the reason is a limit. */
+  readonly limit?: number;
+  /** The observed value that exceeded the limit. */
+  readonly actual?: number;
+}
+
+/**
+ * Line-ending metadata for the two sides of a comparison. Recorded so a diff
+ * that is textually identical but differs only in line endings can say so
+ * rather than silently reporting "identical".
+ */
+export interface DiffEolInfo {
+  readonly a: "lf" | "crlf" | "cr";
+  readonly b: "lf" | "crlf" | "cr";
+  /** True when either side mixes conventions within itself. */
+  readonly mixed: boolean;
+  /** True when the two sides use different conventions. */
+  readonly differs: boolean;
+}
+
 /** The full result of a two-way comparison. */
 export interface DiffResult {
   readonly granularity: DiffGranularity;
   readonly identical: boolean;
   readonly hunks: readonly DiffHunk[];
   readonly stats: DiffStats;
+  /**
+   * Present when the result is incomplete. Consumers must disclose this rather
+   * than presenting a truncated diff as a complete one.
+   */
+  readonly truncation?: DiffTruncation;
+  /** Line-ending analysis of both sides, when computed. */
+  readonly eol?: DiffEolInfo;
+  /**
+   * True when the two sides differ only in line endings and/or trailing
+   * newline, and the comparison was configured to ignore those.
+   */
+  readonly eolOnlyDifference?: boolean;
 }
 
 /** Which side a three-way merge region originated from. */
 export type MergeSide = "base" | "ours" | "theirs";
 
+/**
+ * How a clean (non-conflicting) region was produced.
+ *
+ * Recorded so a merge report can explain *why* a region needed no decision,
+ * which is the difference between a reviewable merge and an opaque one.
+ */
+export type CleanOrigin =
+  | "unchanged" // neither side touched it
+  | "ours" // only we changed it
+  | "theirs" // only they changed it
+  | "both-identical"; // both changed it the same way
+
+/** A half-open line span `[start, end)` within one side of a merge. */
+export interface LineSpan {
+  readonly start: number;
+  readonly end: number;
+}
+
 /** A region in a three-way merge: either a clean copy or a conflict. */
 export interface MergeRegion {
+  /**
+   * Stable identifier, assigned in document order (`region-0`, `region-1`, …).
+   * UIs use it as a key for resolution state so that re-running a merge on
+   * unchanged inputs preserves the user's choices.
+   */
+  readonly id: string;
   readonly conflict: boolean;
   readonly baseLines: readonly string[];
   readonly ourLines: readonly string[];
   readonly theirLines: readonly string[];
   /** For clean regions, the resolved lines. */
   readonly resolved?: readonly string[];
+  /** Why a clean region was clean. Undefined for conflicts. */
+  readonly origin?: CleanOrigin;
+  /** Where this region sits in each input, for editor navigation. */
+  readonly spans?: {
+    readonly base: LineSpan;
+    readonly ours: LineSpan;
+    readonly theirs: LineSpan;
+  };
+}
+
+/** A user's decision about one conflicting region. */
+export type MergeChoice = "ours" | "theirs" | "both-ours-first" | "both-theirs-first" | "base";
+
+/** A resolution for a specific region, by id. */
+export interface MergeResolution {
+  readonly regionId: string;
+  readonly choice: MergeChoice;
+  /**
+   * Replacement lines supplied by the user, overriding `choice`. Present when
+   * the conflict was resolved by hand rather than by picking a side.
+   */
+  readonly manualLines?: readonly string[];
 }
 
 /** The result of a three-way merge. */
@@ -141,6 +232,15 @@ export interface MergeResult {
   readonly clean: boolean;
   readonly regions: readonly MergeRegion[];
   readonly conflictCount: number;
+  /** Ids of the conflicting regions, in document order. */
+  readonly conflictIds: readonly string[];
+  /** Line-ending analysis across the three inputs, when computed. */
+  readonly eol?: {
+    readonly base: "lf" | "crlf" | "cr";
+    readonly ours: "lf" | "crlf" | "cr";
+    readonly theirs: "lf" | "crlf" | "cr";
+    readonly differs: boolean;
+  };
 }
 
 /** Identifies the formatter that produced a result (for reproducibility). */

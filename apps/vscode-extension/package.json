@@ -79,6 +79,58 @@
         "category": "Code Trio"
       },
       {
+        "command": "codeTrio.compareSelected",
+        "title": "Compare Two Selected Files",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.compareSelectionWithClipboard",
+        "title": "Compare Selection With Clipboard",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.compareWithSaved",
+        "title": "Compare With Saved Version On Disk",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.compareWithPreviousRevision",
+        "title": "Compare With Previous Revision (HEAD~1)",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.mergeFromGit",
+        "title": "Merge Conflicted File (Git)",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.mergeFiles",
+        "title": "Merge Three Files...",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.mergeNextConflict",
+        "title": "Next Merge Conflict",
+        "category": "Code Trio",
+        "icon": "$(arrow-down)"
+      },
+      {
+        "command": "codeTrio.mergePreviousConflict",
+        "title": "Previous Merge Conflict",
+        "category": "Code Trio",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "codeTrio.mergePreview",
+        "title": "Preview Merged Result",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.mergeSave",
+        "title": "Save Merged Result As...",
+        "category": "Code Trio"
+      },
+      {
         "command": "codeTrio.spellCheckFile",
         "title": "Spell Check Current File",
         "category": "Code Trio"
@@ -187,6 +239,14 @@
           "group": "1_compare@2"
         },
         {
+          "command": "codeTrio.compareWithSaved",
+          "group": "1_compare@3"
+        },
+        {
+          "command": "codeTrio.compareWithGitRef",
+          "group": "1_compare@4"
+        },
+        {
           "command": "codeTrio.spellCheckFile",
           "group": "2_spell@1"
         },
@@ -210,6 +270,13 @@
           "when": "view == codeTrio.resultsView",
           "group": "navigation@2"
         }
+      ],
+      "explorer/context": [
+        {
+          "command": "codeTrio.compareSelected",
+          "when": "listMultiSelection && resourceScheme == file",
+          "group": "3_compare@1"
+        }
       ]
     },
     "submenus": [
@@ -230,6 +297,18 @@
         "key": "ctrl+alt+s",
         "mac": "cmd+alt+s",
         "when": "editorTextFocus"
+      },
+      {
+        "command": "codeTrio.mergeNextConflict",
+        "key": "ctrl+alt+]",
+        "mac": "cmd+alt+]",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "codeTrio.mergePreviousConflict",
+        "key": "ctrl+alt+[",
+        "mac": "cmd+alt+[",
+        "when": "editorTextFocus"
       }
     ],
     "configuration": {
@@ -237,7 +316,11 @@
       "properties": {
         "codeTrio.diff.granularity": {
           "type": "string",
-          "enum": ["line", "word", "char"],
+          "enum": [
+            "line",
+            "word",
+            "char"
+          ],
           "default": "word",
           "description": "Default refinement granularity for the compare view.",
           "scope": "resource"
@@ -260,6 +343,28 @@
           "maximum": 50,
           "default": 3,
           "description": "Unchanged context lines kept around each change in a diff hunk.",
+          "scope": "resource"
+        },
+        "codeTrio.diff.ignoreEol": {
+          "type": "boolean",
+          "default": false,
+          "description": "Treat CRLF, LF and CR as equivalent when comparing. Off by default because a line-ending change is a real change; turn it on for mixed-platform teams where checkout normalisation would otherwise mark every line as modified.",
+          "scope": "resource"
+        },
+        "codeTrio.diff.maxLines": {
+          "type": "number",
+          "minimum": 1000,
+          "maximum": 5000000,
+          "default": 300000,
+          "description": "Refuse to compare inputs larger than this many lines.",
+          "scope": "resource"
+        },
+        "codeTrio.diff.maxBytes": {
+          "type": "number",
+          "minimum": 65536,
+          "maximum": 536870912,
+          "default": 20971520,
+          "description": "Refuse to compare inputs larger than this many bytes.",
           "scope": "resource"
         },
         "codeTrio.spell.enabled": {
@@ -288,7 +393,9 @@
         },
         "codeTrio.spell.ignoreWords": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": [],
           "description": "Words to accept without adding them to a dictionary file.",
           "scope": "resource"
@@ -311,15 +418,29 @@
         },
         "codeTrio.spell.severity": {
           "type": "string",
-          "enum": ["error", "warning", "information", "hint"],
+          "enum": [
+            "error",
+            "warning",
+            "information",
+            "hint"
+          ],
           "default": "information",
           "description": "Severity used for spelling diagnostics.",
           "scope": "resource"
         },
         "codeTrio.spell.dictionaries": {
           "type": "array",
-          "items": { "type": "string", "enum": ["base", "technical"] },
-          "default": ["base", "technical"],
+          "items": {
+            "type": "string",
+            "enum": [
+              "base",
+              "technical"
+            ]
+          },
+          "default": [
+            "base",
+            "technical"
+          ],
           "description": "Built-in dictionaries to load.",
           "scope": "resource"
         },
@@ -331,8 +452,14 @@
         },
         "codeTrio.spell.ignoreGlobs": {
           "type": "array",
-          "items": { "type": "string" },
-          "default": ["**/node_modules/**", "**/dist/**", "**/out/**"],
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/node_modules/**",
+            "**/dist/**",
+            "**/out/**"
+          ],
           "description": "Globs excluded from spell checking.",
           "scope": "resource"
         },
