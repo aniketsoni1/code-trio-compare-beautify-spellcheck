@@ -59,7 +59,8 @@
     }
   },
   "activationEvents": [
-    "onView:codeTrio.resultsView"
+    "onView:codeTrio.resultsView",
+    "onView:codeTrio.summaryView"
   ],
   "contributes": {
     "commands": [
@@ -211,6 +212,11 @@
         "category": "Code Trio"
       },
       {
+        "command": "codeTrio.exportResults",
+        "title": "Export Results...",
+        "category": "Code Trio"
+      },
+      {
         "command": "codeTrio.refreshResults",
         "title": "Refresh Results",
         "category": "Code Trio",
@@ -237,6 +243,13 @@
         {
           "id": "codeTrio.resultsView",
           "name": "Results",
+          "type": "webview",
+          "icon": "media/activity-bar.svg",
+          "contextualTitle": "Code Trio"
+        },
+        {
+          "id": "codeTrio.summaryView",
+          "name": "Summary",
           "icon": "media/activity-bar.svg",
           "contextualTitle": "Code Trio"
         }
@@ -244,7 +257,7 @@
     },
     "viewsWelcome": [
       {
-        "view": "codeTrio.resultsView",
+        "view": "codeTrio.summaryView",
         "contents": "Code Trio bundles three offline tools: compare, spell check, and beautify.\n[Compare Active File](command:codeTrio.compareWith)\n[Spell Check File](command:codeTrio.spellCheckFile)\n[Beautify Document](command:codeTrio.formatDocument)\nAll processing happens locally with no network calls."
       }
     ],
@@ -306,12 +319,12 @@
       "view/title": [
         {
           "command": "codeTrio.refreshResults",
-          "when": "view == codeTrio.resultsView",
+          "when": "view == codeTrio.summaryView",
           "group": "navigation@1"
         },
         {
           "command": "codeTrio.clearResults",
-          "when": "view == codeTrio.resultsView",
+          "when": "view == codeTrio.summaryView",
           "group": "navigation@2"
         }
       ],

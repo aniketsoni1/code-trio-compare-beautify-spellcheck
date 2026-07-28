@@ -9,6 +9,7 @@ export * from "./language";
 export * from "./permissions";
 export * from "./engine";
 export * from "./schemas";
+export * from "./panel-protocol";
 
 /** Semantic version of the shared model, bumped on breaking model changes. */
 export const CORE_MODEL_VERSION = "1.0.0";

@@ -6,6 +6,8 @@ import { runMergeCommand } from "./commands/merge";
 import { runSpellCommand } from "./commands/spell";
 import { runFormatCommand } from "./commands/format";
 import { runFormattersCommand } from "./commands/formatters";
+import { runReportCommand } from "./commands/report";
+import { runDictionaryCommand } from "./commands/dictionary";
 import { runConfigureCommand, runDoctorCommand, runInitCommand } from "./commands/misc";
 import { ExitCode, formatExitCodeTable } from "./exit-codes";
 import pkg from "../package.json";
@@ -96,6 +98,34 @@ export function buildProgram(): Command {
     .action(async (globs: string[], opts) => {
       const { config } = loadCliConfig();
       process.exitCode = await runFormatCommand(globs, opts, config);
+    });
+
+  program
+    .command("report")
+    .description("Combined spell + beautify report across files")
+    .argument("[globs...]", "files or globs to include")
+    .option("--no-spell", "omit spell results")
+    .option("--no-format-check", "omit formatting results")
+    .option("--lang <id>", "force a language id for all files")
+    .option("-o, --output <file>", "write the report to a file instead of stdout")
+    .option("--format <mode>", "output format: markdown | json | text", "markdown")
+    .option("--fail-on <level>", "exit 1 when any result is present", "none")
+    .action(async (globs: string[], opts) => {
+      const { config, root } = loadCliConfig();
+      process.exitCode = await runReportCommand(globs, opts, config, root);
+    });
+
+  program
+    .command("dictionary")
+    .description("Inspect and edit the dictionary scopes")
+    .argument("<action>", "list | check | add | block | path")
+    .argument("[word]", "the word, for check, add and block")
+    .option("--scope <scope>", "folder | workspace | user", "workspace")
+    .option("--format <mode>", "output format: terminal | json", "terminal")
+    .option("--no-color", "disable ANSI colors")
+    .action((action: string, word: string | undefined, opts) => {
+      const { config, root } = loadCliConfig();
+      process.exitCode = runDictionaryCommand(action, word, opts, config, root);
     });
 
   program

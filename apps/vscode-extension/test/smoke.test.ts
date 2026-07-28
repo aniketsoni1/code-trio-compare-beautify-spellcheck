@@ -62,8 +62,16 @@ describe("extension smoke - Format preview", () => {
 
 describe("extension manifest - lazy, independent activation", () => {
   it("activates narrowly (no wildcard) and bundles to a single entry", () => {
-    expect(manifest.activationEvents).toEqual(["onView:codeTrio.resultsView"]);
+    // Asserted as a property rather than an exact list: v0.2.0 added a second
+    // view, and pinning the literal array made an ordinary contribution look
+    // like a regression. What actually matters is that every trigger is a view
+    // the user opened deliberately, so Code Trio never starts in a window where
+    // it is not used.
+    expect(manifest.activationEvents.length).toBeGreaterThan(0);
     expect(manifest.activationEvents).not.toContain("*");
+    for (const event of manifest.activationEvents) {
+      expect(event.startsWith("onView:codeTrio."), event).toBe(true);
+    }
     expect(manifest.main).toBe("./out/extension.cjs");
   });
 
