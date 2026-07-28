@@ -200,7 +200,6 @@ function tokenizeCode(
       flushOther(i);
       const isTemplate = ch === "`";
       let j = i + 1;
-      let depth = 0;
       while (j < n) {
         const c = text[j];
         if (c === "\\") {
@@ -211,7 +210,7 @@ function tokenizeCode(
         // are skipped so `${user.emailAddress}` does not contribute its
         // property names as candidate words.
         if (isTemplate && c === "$" && text[j + 1] === "{") {
-          depth = 1;
+          let depth = 1;
           j += 2;
           while (j < n && depth > 0) {
             if (text[j] === "{") depth++;
