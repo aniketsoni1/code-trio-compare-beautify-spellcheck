@@ -1,15 +1,11 @@
 import * as vscode from "vscode";
 import type { Diagnostic as CtrDiagnostic, Severity } from "@ctr/core";
 import { matchesAnyGlob, toPosixPath } from "@ctr/core";
-import {
-  appendProjectDictionaryWord,
-  loadProjectDictionary,
-  makeDocument,
-  runSpell,
-} from "@ctr/agent";
+import type { DictionaryScope } from "@ctr/dictionaries";
+import { makeDocument, runSpellScoped, type DictionarySource } from "@ctr/agent";
 import { getConfig } from "./config";
+import { addWordToScope, locationsFor, pickScope } from "./dictionaries";
 import type { ResultsProvider } from "./panel";
-import { isWriteAllowed, warnUntrusted, workspaceRootFor } from "./trust";
 
 interface StoredDiag {
   range: vscode.Range;
@@ -56,20 +52,17 @@ function isExcluded(uri: vscode.Uri, ignoreGlobs: readonly string[]): boolean {
   return false;
 }
 
-function toRange(d: CtrDiagnostic): vscode.Range {
-  return new vscode.Range(
-    d.range.start.line,
-    d.range.start.character,
-    d.range.end.line,
-    d.range.end.character,
-  );
-}
-
-/** Manages spell diagnostics, quick fixes, and the project-dictionary write. */
+/** Manages spell diagnostics, quick fixes, and dictionary writes. */
 export class SpellManager implements vscode.CodeActionProvider, vscode.Disposable {
   private readonly collection = vscode.languages.createDiagnosticCollection("code-trio.spell");
   private readonly stored = new Map<string, StoredDiag[]>();
   private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
+  /** Words ignored for the lifetime of this window only. */
+  private readonly sessionIgnores = new Set<string>();
+  /** Dictionary sources consulted for the most recent check, for reporting. */
+  private lastSources: readonly DictionarySource[] = [];
+  /** Patterns already warned about, so a broken setting warns once, not per keystroke. */
+  private readonly warnedPatterns = new Set<string>();
 
   constructor(private readonly results: ResultsProvider) {}
 
@@ -90,7 +83,12 @@ export class SpellManager implements vscode.CodeActionProvider, vscode.Disposabl
     );
   }
 
-  checkNow(document: vscode.TextDocument): void {
+  /** Re-check every visible editor. Used after a dictionary file changes. */
+  recheckVisible(): void {
+    for (const editor of vscode.window.visibleTextEditors) this.checkNow(editor.document);
+  }
+
+  checkNow(document: vscode.TextDocument, token?: vscode.CancellationToken): void {
     const uri = document.uri;
     if (uri.scheme !== "file" && uri.scheme !== "untitled") return;
 
@@ -107,15 +105,41 @@ export class SpellManager implements vscode.CodeActionProvider, vscode.Disposabl
     }
 
     const doc = makeDocument(uri.toString(), document.languageId, document.getText());
-    const root = workspaceRootFor(uri);
-    const project = root
-      ? loadProjectDictionary(root, config.spell.projectDictionaryPath)
-      : undefined;
-    const diagnostics = runSpell(doc, config, project);
+    const result = runSpellScoped(
+      doc,
+      {
+        ...config,
+        spell: {
+          ...config.spell,
+          // Session ignores are merged in as configured ignore words, which is
+          // the same precedence the pure engine gives the session scope.
+          ignoreWords: [...config.spell.ignoreWords, ...this.sessionIgnores],
+        },
+      },
+      locationsFor(uri),
+      token,
+    );
+    this.lastSources = result.sources;
+
+    // A malformed ignorePattern is a configuration mistake the user must see;
+    // warning once per distinct pattern keeps it from firing on every keystroke.
+    for (const pattern of result.invalidPatterns) {
+      if (this.warnedPatterns.has(pattern)) continue;
+      this.warnedPatterns.add(pattern);
+      void vscode.window.showWarningMessage(
+        `Code Trio: codeTrio.spell.ignorePatterns entry "${pattern}" is not a valid regular expression and was ignored.`,
+      );
+    }
+
+    if (result.skipped) {
+      this.clear(uri);
+      this.results.update({ spellIssues: 0, spellFile: basename(uri), spellSkipped: result.skipped });
+      return;
+    }
 
     const vsDiags: vscode.Diagnostic[] = [];
     const entries: StoredDiag[] = [];
-    for (const d of diagnostics) {
+    for (const d of result.diagnostics) {
       const range = toRange(d);
       const vsDiag = new vscode.Diagnostic(range, d.message, SEVERITY_MAP[d.severity]);
       vsDiag.source = "Code Trio";
@@ -131,14 +155,24 @@ export class SpellManager implements vscode.CodeActionProvider, vscode.Disposabl
     this.collection.set(uri, vsDiags);
     this.stored.set(uri.toString(), entries);
     this.results.update({
-      spellIssues: diagnostics.length,
-      spellFile: uri.path.split("/").pop() ?? "",
+      spellIssues: result.diagnostics.length,
+      spellFile: basename(uri),
+      spellTruncated: result.truncated,
+      spellSources: result.sources
+        .filter((s) => s.exists)
+        .map((s) => `${s.scope} (${s.wordCount})`)
+        .join(", "),
     });
   }
 
   clear(uri: vscode.Uri): void {
     this.collection.delete(uri);
     this.stored.delete(uri.toString());
+  }
+
+  /** Dictionary files consulted by the most recent check. */
+  sources(): readonly DictionarySource[] {
+    return this.lastSources;
   }
 
   provideCodeActions(
@@ -167,16 +201,28 @@ export class SpellManager implements vscode.CodeActionProvider, vscode.Disposabl
       });
 
       const addAction = new vscode.CodeAction(
-        `Add "${entry.word}" to project dictionary`,
+        `Add "${entry.word}" to a dictionary...`,
         vscode.CodeActionKind.QuickFix,
       );
       addAction.command = {
         command: "codeTrio.spellAddWord",
-        title: "Add Word To Project Dictionary",
+        title: "Add Word To Dictionary",
         arguments: [entry.word, document.uri],
       };
       addAction.diagnostics = [diag];
       actions.push(addAction);
+
+      const ignoreAction = new vscode.CodeAction(
+        `Ignore "${entry.word}" for this session`,
+        vscode.CodeActionKind.QuickFix,
+      );
+      ignoreAction.command = {
+        command: "codeTrio.spellIgnoreSession",
+        title: "Ignore For This Session",
+        arguments: [entry.word],
+      };
+      ignoreAction.diagnostics = [diag];
+      actions.push(ignoreAction);
     }
     return actions;
   }
@@ -201,32 +247,58 @@ export class SpellManager implements vscode.CodeActionProvider, vscode.Disposabl
     void vscode.window.showInformationMessage(`Code Trio: applied ${fixes} spelling fix(es).`);
   }
 
-  addWord(word: string, uri: vscode.Uri): void {
+  /**
+   * Add a word, asking which scope it belongs in.
+   *
+   * v0.1.0 always wrote to the single project dictionary. With six scopes the
+   * destination is a real decision — a personal preference should not require a
+   * commit to a shared file, and a term specific to one package should not be
+   * accepted repository-wide.
+   */
+  async addWord(word: string, uri: vscode.Uri, scope?: DictionaryScope): Promise<void> {
     if (!word) return;
-    if (!isWriteAllowed()) {
-      warnUntrusted("adding to the project dictionary");
+    const chosen = scope ?? (await pickScope(word, uri));
+    if (!chosen) return;
+
+    if (chosen === "session") {
+      this.ignoreForSession(word);
       return;
     }
-    const root = workspaceRootFor(uri) ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    if (!root) {
-      void vscode.window.showWarningMessage(
-        "Code Trio: open a folder to use a project dictionary.",
+
+    const result = addWordToScope(word, chosen, uri);
+    if (result.added) {
+      void vscode.window.showInformationMessage(
+        `Code Trio: added "${word}" to ${result.path}.`,
       );
-      return;
+    } else if (result.reason === "already present") {
+      void vscode.window.showInformationMessage(`Code Trio: "${word}" is already there.`);
+    } else if (result.reason !== "untrusted workspace") {
+      void vscode.window.showWarningMessage(
+        `Code Trio: could not add "${word}" — ${result.reason ?? "unknown error"}.`,
+      );
     }
-    const config = getConfig(uri);
-    const { added, path } = appendProjectDictionaryWord(
-      root,
-      config.spell.projectDictionaryPath,
-      word,
-    );
+    this.recheckVisible();
+  }
+
+  /** Accept a word for this window only, writing nothing. */
+  ignoreForSession(word: string): void {
+    const normalized = word.trim().toLowerCase();
+    if (!normalized) return;
+    this.sessionIgnores.add(normalized);
+    this.recheckVisible();
     void vscode.window.showInformationMessage(
-      added
-        ? `Code Trio: added "${word}" to ${config.spell.projectDictionaryPath}.`
-        : `Code Trio: "${word}" already in dictionary.`,
+      `Code Trio: ignoring "${normalized}" for this session. Nothing was written to disk.`,
     );
-    void path;
-    for (const editor of vscode.window.visibleTextEditors) this.checkNow(editor.document);
+  }
+
+  /** Forget every session ignore, restoring the on-disk dictionaries alone. */
+  clearSessionIgnores(): void {
+    const count = this.sessionIgnores.size;
+    this.sessionIgnores.clear();
+    this.recheckVisible();
+    void vscode.window.showInformationMessage(
+      `Code Trio: cleared ${count} session ignore(s).`,
+    );
   }
 
   dispose(): void {
@@ -234,5 +306,20 @@ export class SpellManager implements vscode.CodeActionProvider, vscode.Disposabl
     this.timers.clear();
     this.collection.dispose();
     this.stored.clear();
+    this.sessionIgnores.clear();
+    this.warnedPatterns.clear();
   }
+}
+
+function toRange(d: CtrDiagnostic): vscode.Range {
+  return new vscode.Range(
+    d.range.start.line,
+    d.range.start.character,
+    d.range.end.line,
+    d.range.end.character,
+  );
+}
+
+function basename(uri: vscode.Uri): string {
+  return uri.path.split("/").pop() ?? "";
 }

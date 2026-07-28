@@ -11,6 +11,9 @@ export function tokenize(text: string, languageId: string): Token[] {
   const lang = resolveLanguage(languageId);
   const mapper = new PositionMapper(text);
   if (lang.id === "markdown") return tokenizeMarkdown(text, mapper);
+  if (lang.id === "yaml" || lang.id === "json") {
+    return tokenizeCode(text, lang, mapper);
+  }
   if (lang.id === "plaintext" || lang.stringDelimiters.length === 0) {
     if (lang.lineComments.length === 0 && lang.blockComments.length === 0) {
       return proseTokens(text, mapper);
@@ -35,38 +38,117 @@ function proseTokens(text: string, mapper: PositionMapper): Token[] {
   return tokens;
 }
 
-/** Markdown: prose tokens, skipping fenced and inline code. */
+/**
+ * Markdown: prose only.
+ *
+ * Skipped, because none of it is natural language a spell checker should judge:
+ * fenced code blocks, indented code blocks, inline code spans, YAML/TOML front
+ * matter, link and image destinations, HTML tags, and reference definitions.
+ *
+ * Front matter is the notable addition. A Jekyll or Astro page begins with a
+ * YAML block of keys such as `permalink` and `og:image`, every one of which was
+ * previously reported as a misspelling on every single content file.
+ */
 function tokenizeMarkdown(text: string, mapper: PositionMapper): Token[] {
   const tokens: Token[] = [];
   const lines = text.split(/(?<=\n)/);
   let offset = 0;
   let inFence = false;
+  let fenceMarker = "";
+  let inFrontMatter = false;
+  let lineNumber = 0;
+
   for (const line of lines) {
     const body = line.replace(/\r?\n$/, "");
-    if (/^\s*```/.test(body)) {
-      inFence = !inFence;
+    const trimmed = body.trim();
+
+    // Front matter: only when it opens on the very first line.
+    if (lineNumber === 0 && /^(---|\+\+\+)\s*$/.test(trimmed)) {
+      inFrontMatter = true;
+      fenceMarker = trimmed;
       offset += line.length;
+      lineNumber++;
       continue;
     }
-    if (!inFence && body.trim().length > 0) {
-      // split out inline `code` spans, keeping accurate offsets for prose
-      const re = /`[^`]*`/g;
-      let m: RegExpExecArray | null;
-      let last = 0;
-      const segments: Array<[number, string]> = [];
-      while ((m = re.exec(body)) !== null) {
-        if (m.index > last) segments.push([last, body.slice(last, m.index)]);
-        last = m.index + m[0].length;
+    if (inFrontMatter) {
+      if (trimmed === fenceMarker) inFrontMatter = false;
+      offset += line.length;
+      lineNumber++;
+      continue;
+    }
+
+    // Fenced code, honouring the opening marker so a ``` inside a ~~~ block
+    // does not close it.
+    const fence = /^\s*(```+|~~~+)/.exec(body);
+    if (fence) {
+      const marker = fence[1] as string;
+      if (!inFence) {
+        inFence = true;
+        fenceMarker = marker[0] as string;
+      } else if (marker.startsWith(fenceMarker)) {
+        inFence = false;
       }
-      if (last < body.length) segments.push([last, body.slice(last)]);
-      if (segments.length === 0) segments.push([0, body]);
-      for (const [start, seg] of segments) {
+      offset += line.length;
+      lineNumber++;
+      continue;
+    }
+    if (inFence) {
+      offset += line.length;
+      lineNumber++;
+      continue;
+    }
+
+    // Indented code blocks (four spaces or a tab) and reference definitions.
+    if (/^(?: {4}|\t)/.test(body) || /^\s*\[[^\]]+\]:\s*\S+/.test(body)) {
+      offset += line.length;
+      lineNumber++;
+      continue;
+    }
+
+    if (trimmed.length > 0) {
+      for (const [start, seg] of prosePieces(body)) {
         if (seg.trim().length > 0) tokens.push(mk("comment", seg, offset + start, mapper));
       }
     }
     offset += line.length;
+    lineNumber++;
   }
   return tokens;
+}
+
+/**
+ * Break a Markdown line into the pieces that are actually prose, preserving
+ * each piece's offset within the line.
+ *
+ * Removes inline code spans, HTML tags, and link/image destinations while
+ * keeping the visible link text, which is prose and should be checked.
+ */
+function prosePieces(body: string): Array<[number, string]> {
+  const skip: Array<[number, number]> = [];
+  const record = (re: RegExp): void => {
+    re.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(body)) !== null) {
+      skip.push([m.index, m.index + m[0].length]);
+      if (m[0].length === 0) re.lastIndex++;
+    }
+  };
+  record(/`+[^`]*`+/g); // inline code
+  record(/<\/?[a-z][^>]*>/gi); // html tags
+  record(/\]\([^)]*\)/g); // link destination, keeps the [text]
+  record(/^\s*#{1,6}\s+/g); // heading markers
+  record(/^\s*[*+-]\s+/g); // list markers
+  record(/^\s*>\s?/g); // block quote markers
+
+  skip.sort((a, b) => a[0] - b[0]);
+  const pieces: Array<[number, string]> = [];
+  let cursor = 0;
+  for (const [start, end] of skip) {
+    if (start > cursor) pieces.push([cursor, body.slice(cursor, start)]);
+    cursor = Math.max(cursor, end);
+  }
+  if (cursor < body.length) pieces.push([cursor, body.slice(cursor)]);
+  return pieces.length > 0 ? pieces : [[0, body]];
 }
 
 function startsWithAt(text: string, i: number, needle: string): boolean {
@@ -116,6 +198,7 @@ function tokenizeCode(
     const ch = text[i] as string;
     if (lang.stringDelimiters.includes(ch)) {
       flushOther(i);
+      const isTemplate = ch === "`";
       let j = i + 1;
       while (j < n) {
         const c = text[j];
@@ -123,11 +206,25 @@ function tokenizeCode(
           j += 2;
           continue;
         }
+        // Interpolations inside a template literal are code, not prose. They
+        // are skipped so `${user.emailAddress}` does not contribute its
+        // property names as candidate words.
+        if (isTemplate && c === "$" && text[j + 1] === "{") {
+          let depth = 1;
+          j += 2;
+          while (j < n && depth > 0) {
+            if (text[j] === "{") depth++;
+            else if (text[j] === "}") depth--;
+            j++;
+          }
+          continue;
+        }
         if (c === ch) {
           j++;
           break;
         }
-        // unterminated single/double quoted strings stop at newline
+        // Unterminated single/double quoted strings stop at a newline, so an
+        // apostrophe in a comment cannot swallow the rest of the file.
         if ((ch === '"' || ch === "'") && c === "\n") break;
         j++;
       }

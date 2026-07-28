@@ -2,20 +2,48 @@ import * as vscode from "vscode";
 import { ResultsProvider } from "./panel";
 import { SpellManager } from "./diagnostics";
 import { SCHEME, VirtualDocProvider } from "./virtualDocs";
-import { compareWithClipboard, compareWithFile, compareWithGitRef } from "./compare";
+import {
+  compareSelected,
+  compareSelectionWithClipboard,
+  compareWithClipboard,
+  compareWithFile,
+  compareWithGitRef,
+  compareWithPreviousRevision,
+  compareWithSaved,
+} from "./compare";
+import { MergeManager } from "./merge";
+import { DictionaryWatcher, openDictionary } from "./dictionaries";
 import { formatActiveDocument, formatChangedFiles, onWillSaveEdits, previewFormat } from "./format";
 
 export function activate(context: vscode.ExtensionContext): void {
   const results = new ResultsProvider();
   const virtualDocs = new VirtualDocProvider();
   const spell = new SpellManager(results);
+  const merge = new MergeManager(results, virtualDocs);
+  const dictionaries = new DictionaryWatcher();
+  dictionaries.refresh();
 
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider("codeTrio.resultsView", results),
     vscode.workspace.registerTextDocumentContentProvider(SCHEME, virtualDocs),
     vscode.languages.registerCodeActionsProvider({ scheme: "*" }, spell, SpellManager.metadata),
     spell,
+    merge,
     virtualDocs,
+    dictionaries,
+    // A dictionary edit must take effect immediately; without this the user
+    // adds a word, sees the diagnostic persist, and concludes it did not work.
+    dictionaries.onDidChange(() => spell.recheckVisible()),
+    // Folder add/remove changes which dictionaries are relevant.
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      dictionaries.refresh();
+      spell.recheckVisible();
+    }),
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (!event.affectsConfiguration("codeTrio")) return;
+      dictionaries.refresh();
+      spell.recheckVisible();
+    }),
   );
 
   const activeDocument = (): vscode.TextDocument | undefined =>
@@ -23,8 +51,21 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const commands: Record<string, (...args: unknown[]) => unknown> = {
     "codeTrio.compareWith": () => compareWithFile(results),
+    "codeTrio.compareSelected": (clicked, selection) =>
+      compareSelected(results, clicked as vscode.Uri | undefined, selection as vscode.Uri[]),
     "codeTrio.compareWithClipboard": () => compareWithClipboard(results, virtualDocs),
+    "codeTrio.compareSelectionWithClipboard": () =>
+      compareSelectionWithClipboard(results, virtualDocs),
+    "codeTrio.compareWithSaved": () => compareWithSaved(results, virtualDocs),
     "codeTrio.compareWithGitRef": () => compareWithGitRef(results, virtualDocs),
+    "codeTrio.compareWithPreviousRevision": () =>
+      compareWithPreviousRevision(results, virtualDocs),
+    "codeTrio.mergeFromGit": () => merge.startFromGit(),
+    "codeTrio.mergeFiles": () => merge.startFromFiles(),
+    "codeTrio.mergeNextConflict": () => merge.nextConflict(),
+    "codeTrio.mergePreviousConflict": () => merge.previousConflict(),
+    "codeTrio.mergePreview": () => merge.preview(),
+    "codeTrio.mergeSave": () => merge.save(),
     "codeTrio.spellCheckFile": () => {
       const doc = activeDocument();
       if (doc) spell.checkNow(doc);
@@ -34,7 +75,39 @@ export function activate(context: vscode.ExtensionContext): void {
       const doc = activeDocument();
       if (doc) void spell.fixAllInFile(doc);
     },
-    "codeTrio.spellAddWord": (word, uri) => spell.addWord(String(word ?? ""), uri as vscode.Uri),
+    "codeTrio.spellAddWord": (word, uri) =>
+      spell.addWord(String(word ?? ""), (uri as vscode.Uri) ?? activeDocument()?.uri),
+    "codeTrio.spellIgnoreSession": (word) => spell.ignoreForSession(String(word ?? "")),
+    "codeTrio.spellClearSessionIgnores": () => spell.clearSessionIgnores(),
+    "codeTrio.openWorkspaceDictionary": () => {
+      const doc = activeDocument();
+      if (doc) void openDictionary("workspace", doc.uri);
+    },
+    "codeTrio.openFolderDictionary": () => {
+      const doc = activeDocument();
+      if (doc) void openDictionary("folder", doc.uri);
+    },
+    "codeTrio.openUserDictionary": () => {
+      const doc = activeDocument();
+      if (doc) void openDictionary("user", doc.uri);
+    },
+    "codeTrio.showDictionarySources": () => {
+      const sources = spell.sources();
+      if (sources.length === 0) {
+        void vscode.window.showInformationMessage(
+          "Code Trio: run a spell check first to see which dictionaries were used.",
+        );
+        return;
+      }
+      void vscode.window.showQuickPick(
+        sources.map((s) => ({
+          label: `$(book) ${s.scope}`,
+          description: s.exists ? `${s.wordCount} word(s)` : "not created yet",
+          detail: s.error ? `${s.path} — ${s.error}` : s.path,
+        })),
+        { title: "Dictionaries consulted, most specific first" },
+      );
+    },
     "codeTrio.formatDocument": () => formatActiveDocument(results, virtualDocs),
     "codeTrio.formatPreview": () => previewFormat(results, virtualDocs),
     "codeTrio.formatChangedFiles": () => formatChangedFiles(results),
