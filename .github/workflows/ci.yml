@@ -102,20 +102,38 @@ jobs:
       - uses: actions/checkout@v4
       # Grep-based rather than test-based on purpose: this must fail even if
       # someone deletes the test that asserts the same thing.
+      #
+      # Scoped to src/ only. Test files legitimately mention fetch and
+      # XMLHttpRequest because they assert those APIs are *absent*, and the
+      # bundled technical dictionary legitimately contains words like "axios"
+      # and "sentry" because developers write them in comments. A grep that
+      # cannot tell a word list from an import is a grep that gets disabled the
+      # first time it cries wolf.
       - name: Assert no network clients in shipped source
         run: |
-          if grep -rnE "\bfetch\(|XMLHttpRequest|new WebSocket|EventSource\(|sendBeacon|require\(['\"]https?['\"]\)|from ['\"]node:https?['\"]|from ['\"](axios|node-fetch|got|undici)['\"]" apps packages --include=*.ts --include=*.mjs; then
+          if grep -rnE "\bfetch\(|XMLHttpRequest|new WebSocket|EventSource\(|sendBeacon|require\(['\"]https?['\"]\)|from ['\"]node:https?['\"]|(import|require).*['\"](axios|node-fetch|got|undici)['\"]" \
+               apps/*/src packages/*/src --include=*.ts --include=*.mjs \
+               --exclude-dir=data; then
             echo "::error::A network client appears in shipped source. Code Trio is offline-only."
             exit 1
           fi
-          echo "No network clients found."
-      - name: Assert no telemetry SDKs
+          echo "No network clients found in shipped source."
+      - name: Assert no telemetry SDKs are imported
         run: |
-          if grep -rniE "applicationinsights|@vscode/extension-telemetry|posthog|amplitude|mixpanel|segment\.io|sentry" apps packages --include=*.ts --include=*.json; then
-            echo "::error::A telemetry SDK appears in shipped source."
+          if grep -rniE "(import|require|from)[^\n]*(applicationinsights|@vscode/extension-telemetry|posthog|amplitude|mixpanel|@sentry)" \
+               apps/*/src packages/*/src --include=*.ts --exclude-dir=data; then
+            echo "::error::A telemetry SDK is imported in shipped source."
             exit 1
           fi
-          echo "No telemetry SDKs found."
+          echo "No telemetry SDK imports found."
+      - name: Assert no telemetry packages are declared
+        run: |
+          if grep -rniE "\"(applicationinsights|@vscode/extension-telemetry|posthog-node|@amplitude/[a-z-]+|mixpanel|@sentry/[a-z-]+)\"" \
+               package.json apps/*/package.json packages/*/package.json; then
+            echo "::error::A telemetry package is declared as a dependency."
+            exit 1
+          fi
+          echo "No telemetry packages declared."
       - name: Assert the webview loads no remote resource
         run: |
           if grep -nE "https?://" apps/vscode-extension/src/webview-html.ts; then
