@@ -1,5 +1,51 @@
 # Changelog
 
+## [0.2.0] - 2026-07-28
+
+### Added
+
+- Three-way merge in the editor: read git's conflict stages or pick three files,
+  navigate conflicts with `Ctrl/Cmd+Alt+]` and `[`, accept ours/theirs/both/base
+  or resolve by hand, preview the result, and save to a new file. Saving is
+  refused while any conflict is unresolved. Git staging is never touched.
+- A real results panel: a webview with per-tool tabs, severity counts, search,
+  five sort orders, keyboard navigation, copy, and Markdown/JSON export.
+- Per-folder dictionaries and six scopes with documented precedence. Adding a
+  word asks which dictionary it belongs in.
+- "Ignore for this session" — accepts a word for this window, writes nothing.
+- External formatters: Ruff, Black, gofmt, rustfmt and clang-format, used when
+  already installed. Nothing is ever downloaded.
+- "Show Available Formatters" reports every adapter, its version, its resolved
+  executable, and why an unavailable one is unavailable.
+- Beautify Entire Workspace, behind a modal confirmation naming the file count.
+- Four new compare workflows: two Explorer selections, selection against
+  clipboard, buffer against the saved file, and the previous revision.
+
+### Improved
+
+- Spell-check noise: URLs, paths, hashes, UUIDs, hex, versions, timestamps and
+  base64 are suppressed before word extraction. 28 diagnostics down to 9 on a
+  fixture of realistic comments.
+- Unicode-correct diffing and word extraction.
+- Batch formatting reports progress, is cancellable, and no longer aborts the
+  whole run when one file fails.
+
+### Fixed
+
+- Nine settings were read from the settings store and then overwritten with
+  compiled-in defaults, so editing them had no effect. Six of those were not
+  contributed in the manifest either.
+- `codeTrio.spell.ignoreGlobs` was contributed and documented but never read.
+- Compare summaries were computed with a hardcoded language and default options,
+  so the panel figure could disagree with the diff on screen.
+
+### Security
+
+- The results panel enforces `default-src 'none'` with per-load nonces and no
+  remote origin. Messages from the webview are validated at runtime.
+- Git refs are validated against an allowlist; child processes run with a
+  minimal environment, a timeout and bounded output.
+
 ## [0.1.0] - 2026-07-19
 
 ### Added

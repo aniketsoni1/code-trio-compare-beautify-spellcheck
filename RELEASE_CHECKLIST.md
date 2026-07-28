@@ -6,17 +6,40 @@ workflow still produces a verified GitHub release and simply skips publishing.
 
 ## 1. Prepare
 
-- [ ] Update the version in `apps/vscode-extension/package.json`, `apps/cli/package.json`, and the root `package.json` to `X.Y.Z`.
+- [ ] Update the version in the root `package.json`, `apps/cli/package.json`, `apps/vscode-extension/package.json`, and every `packages/*/package.json`. They are versioned in lockstep: one release, one number.
+- [ ] `npm install --package-lock-only` so the lockfile's workspace metadata matches.
 - [ ] Add an `[X.Y.Z]` section to `CHANGELOG.md` and `apps/vscode-extension/CHANGELOG.md` with the date.
+- [ ] Write `docs/releases/vX.Y.Z.md`.
+- [ ] Update documentation that names the packaged VSIX (`README.md`, `docs/media.md`) and the issue-template placeholder. Leave historical changelog entries and prose about previous behaviour alone.
 - [ ] `npm run assets` if any branding changed.
 
 ## 2. Verify locally
 
 - [ ] `npm ci`
 - [ ] `npm run verify` (typecheck + lint + tests) is green.
+- [ ] `node scripts/cli-smoke.mjs` passes. This runs the built CLI as a child process and catches what the unit suite cannot: an unregistered command, a broken argument definition, a wrong exit code.
+- [ ] `npm run bench` — record the numbers if they moved materially.
+- [ ] `npm audit --omit=dev` — assess runtime relevance rather than hiding the output.
 - [ ] `npm run build` produces the CLI and extension bundles.
 - [ ] `npm run package:vsix` creates `artifacts/code-trio-compare-beautify-spellcheck-X.Y.Z.vsix`.
 - [ ] `npm run verify:vsix` passes (content audit, size, secrets, smoke test).
+- [ ] Confirm the version **inside** the archive, not just the filename: `extension.vsixmanifest` `Identity/@Version` and `extension/package.json` must both read `X.Y.Z`.
+- [ ] Verify the checksum independently: `sha256sum -c artifacts/*-X.Y.Z.vsix.sha256`.
+- [ ] Confirm the release is not a version-number-only relabel — the package contents must actually differ from the previous release.
+
+## 2b. Install test (do not skip, do not fake)
+
+- [ ] Install into an **isolated** profile so your normal setup is untouched:
+      `code --user-data-dir /tmp/ctr-profile --extensions-dir /tmp/ctr-extensions --install-extension artifacts/...vsix --force`
+- [ ] Confirm the installed version with `--list-extensions --show-versions`.
+- [ ] Walk the functional checklist in the release's `artifacts/vX.Y.Z-verification.md`.
+- [ ] Confirm writes are blocked in an **untrusted** workspace while compare and spell diagnostics still work.
+- [ ] Disconnect the network and confirm every core workflow still works.
+- [ ] Clean up the temporary profile and extensions directory.
+
+If the environment cannot run VS Code, mark this section **Blocked** in the
+verification record and say so in the release notes. Do not describe the package
+as install-tested.
 
 ## 3. Tag
 
