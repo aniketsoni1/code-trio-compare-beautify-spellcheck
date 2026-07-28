@@ -254,16 +254,59 @@
           "description": "Ignore case differences when comparing.",
           "scope": "resource"
         },
+        "codeTrio.diff.contextLines": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 50,
+          "default": 3,
+          "description": "Unchanged context lines kept around each change in a diff hunk.",
+          "scope": "resource"
+        },
         "codeTrio.spell.enabled": {
           "type": "boolean",
           "default": true,
           "description": "Enable code-aware spell diagnostics.",
           "scope": "resource"
         },
+        "codeTrio.spell.checkComments": {
+          "type": "boolean",
+          "default": true,
+          "description": "Spell-check the contents of comments.",
+          "scope": "resource"
+        },
+        "codeTrio.spell.checkStrings": {
+          "type": "boolean",
+          "default": true,
+          "description": "Spell-check the contents of string literals.",
+          "scope": "resource"
+        },
         "codeTrio.spell.checkIdentifiers": {
           "type": "boolean",
           "default": false,
-          "description": "Also spell-check identifiers (opt-in). Comments and strings are always checked when enabled.",
+          "description": "Also spell-check identifiers (opt-in). Identifiers are split on camelCase, snake_case, kebab-case and SCREAMING_CASE before lookup.",
+          "scope": "resource"
+        },
+        "codeTrio.spell.ignoreWords": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Words to accept without adding them to a dictionary file.",
+          "scope": "resource"
+        },
+        "codeTrio.spell.minWordLength": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 20,
+          "default": 3,
+          "description": "Words shorter than this are never reported.",
+          "scope": "resource"
+        },
+        "codeTrio.spell.maxSuggestions": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20,
+          "default": 5,
+          "description": "Maximum number of replacement suggestions offered per unknown word.",
           "scope": "resource"
         },
         "codeTrio.spell.severity": {
@@ -309,6 +352,28 @@
           "type": "boolean",
           "default": true,
           "description": "Record the formatter name and version in results for reproducibility.",
+          "scope": "resource"
+        },
+        "codeTrio.format.tabWidth": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 16,
+          "default": 2,
+          "description": "Indentation width passed to formatters that accept one.",
+          "scope": "resource"
+        },
+        "codeTrio.format.useTabs": {
+          "type": "boolean",
+          "default": false,
+          "description": "Indent with tabs instead of spaces where the formatter supports it.",
+          "scope": "resource"
+        },
+        "codeTrio.format.printWidth": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 400,
+          "default": 80,
+          "description": "Preferred maximum line width passed to formatters that accept one.",
           "scope": "resource"
         }
       }
