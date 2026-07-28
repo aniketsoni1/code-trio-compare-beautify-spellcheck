@@ -5,6 +5,7 @@ import { runDiffCommand } from "./commands/diff";
 import { runMergeCommand } from "./commands/merge";
 import { runSpellCommand } from "./commands/spell";
 import { runFormatCommand } from "./commands/format";
+import { runFormattersCommand } from "./commands/formatters";
 import { runConfigureCommand, runDoctorCommand, runInitCommand } from "./commands/misc";
 import { ExitCode, formatExitCodeTable } from "./exit-codes";
 import pkg from "../package.json";
@@ -95,6 +96,17 @@ export function buildProgram(): Command {
     .action(async (globs: string[], opts) => {
       const { config } = loadCliConfig();
       process.exitCode = await runFormatCommand(globs, opts, config);
+    });
+
+  program
+    .command("formatters")
+    .description("Report which formatters are available on this machine")
+    .option("--lang <id>", "only show adapters that claim this language")
+    .option("--format <mode>", "output format: terminal | json", "terminal")
+    .option("--no-color", "disable ANSI colors")
+    .action(async (opts) => {
+      const { config } = loadCliConfig();
+      process.exitCode = await runFormattersCommand(opts, config);
     });
 
   program
