@@ -151,6 +151,36 @@
         "category": "Code Trio"
       },
       {
+        "command": "codeTrio.spellIgnoreSession",
+        "title": "Ignore Word For This Session",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.spellClearSessionIgnores",
+        "title": "Clear Session Ignore List",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.openWorkspaceDictionary",
+        "title": "Open Workspace Dictionary",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.openFolderDictionary",
+        "title": "Open Workspace Folder Dictionary",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.openUserDictionary",
+        "title": "Open User Dictionary",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.showDictionarySources",
+        "title": "Show Dictionary Sources",
+        "category": "Code Trio"
+      },
+      {
         "command": "codeTrio.formatDocument",
         "title": "Beautify Document",
         "category": "Code Trio"
@@ -212,6 +242,10 @@
       "commandPalette": [
         {
           "command": "codeTrio.spellAddWord",
+          "when": "false"
+        },
+        {
+          "command": "codeTrio.spellIgnoreSession",
           "when": "false"
         },
         {
@@ -450,6 +484,18 @@
           "description": "Workspace-relative path to the shared project dictionary.",
           "scope": "resource"
         },
+        "codeTrio.spell.folderDictionaryPath": {
+          "type": "string",
+          "default": ".codetrio/dictionary.txt",
+          "description": "Dictionary path relative to each workspace folder. Only consulted when the folder differs from the workspace root, which is what makes it useful in a multi-root workspace or monorepo.",
+          "scope": "resource"
+        },
+        "codeTrio.spell.userDictionaryPath": {
+          "type": "string",
+          "default": ".codetrio/user-dictionary.txt",
+          "description": "Personal dictionary, resolved against your home directory. Leave empty to disable the user scope.",
+          "scope": "resource"
+        },
         "codeTrio.spell.ignoreGlobs": {
           "type": "array",
           "items": {
@@ -461,6 +507,43 @@
             "**/out/**"
           ],
           "description": "Globs excluded from spell checking.",
+          "scope": "resource"
+        },
+        "codeTrio.spell.ignoreNoiseTokens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Suppress URLs, file paths, hashes, UUIDs, hex values, versions and timestamps before checking. Turning this off substantially increases false positives.",
+          "scope": "resource"
+        },
+        "codeTrio.spell.ignorePatterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Additional regular expressions whose matches are never reported.",
+          "scope": "resource"
+        },
+        "codeTrio.spell.checkAcronyms": {
+          "type": "boolean",
+          "default": false,
+          "description": "Also check ALL-CAPS acronym fragments when identifier checking is enabled.",
+          "scope": "resource"
+        },
+        "codeTrio.spell.maxFileSizeKb": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 102400,
+          "default": 2048,
+          "description": "Skip documents larger than this instead of scanning them.",
+          "scope": "resource"
+        },
+        "codeTrio.spell.maxDiagnostics": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 100000,
+          "default": 1000,
+          "description": "Maximum spelling diagnostics reported for a single document.",
           "scope": "resource"
         },
         "codeTrio.format.formatOnSave": {
