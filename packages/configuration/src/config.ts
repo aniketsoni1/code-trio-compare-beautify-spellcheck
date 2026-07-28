@@ -42,7 +42,33 @@ export const SpellConfigSchema = z.object({
   checkIdentifiers: z.boolean().default(false),
   severity: z.enum(["error", "warning", "information", "hint"]).default("information"),
   dictionaries: z.array(z.enum(["base", "technical"])).default(["base", "technical"]),
+  /**
+   * The workspace-level dictionary. Kept at its v0.1.0 name and default so
+   * existing project dictionaries keep working with no migration step.
+   */
   projectDictionaryPath: z.string().default(".codetrio/dictionary.txt"),
+  /**
+   * Per-workspace-folder dictionary, relative to each folder root. Only
+   * consulted when the folder differs from the workspace root, which is what
+   * makes it meaningful in a multi-root workspace or a monorepo: terms correct
+   * in one package are noise in another.
+   */
+  folderDictionaryPath: z.string().default(".codetrio/dictionary.txt"),
+  /**
+   * The user's personal dictionary, outside any repository. Resolved against
+   * the home directory. Empty disables the scope entirely.
+   */
+  userDictionaryPath: z.string().default(".codetrio/user-dictionary.txt"),
+  /** Suppress URLs, hashes, UUIDs, paths, versions and similar machine data. */
+  ignoreNoiseTokens: z.boolean().default(true),
+  /** Additional regular expressions whose matches are never reported. */
+  ignorePatterns: z.array(z.string()).default([]),
+  /** Also check ALL-CAPS acronym fragments when identifier checking is on. */
+  checkAcronyms: z.boolean().default(false),
+  /** Skip documents above this size rather than scanning them. */
+  maxFileSizeKb: z.number().int().min(1).max(102_400).default(2_048),
+  /** Cap on diagnostics reported for a single document. */
+  maxDiagnostics: z.number().int().min(1).max(100_000).default(1_000),
   ignoreGlobs: z
     .array(z.string())
     .default(["**/node_modules/**", "**/dist/**", "**/out/**"]),

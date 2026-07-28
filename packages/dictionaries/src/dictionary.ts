@@ -85,3 +85,31 @@ export const BUILTIN_WORD_COUNTS: Record<BuiltinName, number> = {
   base: BASE_WORDS.split("\n").filter(Boolean).length,
   technical: TECHNICAL_WORDS.split("\n").filter(Boolean).length,
 };
+
+/**
+ * The words of one built-in list, as an array.
+ *
+ * Exposed so `DictionaryStack` can register `base` and `technical` as distinct
+ * layers with their own precedence, rather than pre-merging them into a single
+ * opaque set the way `loadDictionary` does. Merging them early would make it
+ * impossible to answer "was this word accepted because it is ordinary English
+ * or because it is a technical term?", which is exactly what a user needs to
+ * know when deciding whether to add it to a project dictionary.
+ *
+ * Memoised: the lists are immutable, so splitting them once and sharing the
+ * frozen array avoids re-splitting a few thousand lines on every document scan.
+ */
+const builtinCache = new Map<BuiltinName, readonly string[]>();
+
+export function builtinWords(name: BuiltinName): readonly string[] {
+  const cached = builtinCache.get(name);
+  if (cached) return cached;
+  const words = Object.freeze(
+    BUILTIN[name]()
+      .split("\n")
+      .map((w) => w.trim().toLowerCase())
+      .filter(Boolean),
+  );
+  builtinCache.set(name, words);
+  return words;
+}
