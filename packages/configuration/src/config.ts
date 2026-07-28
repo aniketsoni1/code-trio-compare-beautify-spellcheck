@@ -84,6 +84,26 @@ export const FormatConfigSchema = z.object({
   tabWidth: z.number().int().min(1).max(16).default(2),
   useTabs: z.boolean().default(false),
   printWidth: z.number().int().min(20).max(400).default(80),
+  /**
+   * Allow discovery and execution of locally installed formatters. When off,
+   * only the bundled Prettier and the whitespace normalizer are used and no
+   * external process is ever started.
+   */
+  externalFormatters: z.boolean().default(true),
+  /**
+   * Absolute paths to specific formatter executables, keyed by adapter id
+   * (ruff, black, gofmt, rustfmt, clang-format). Overrides PATH discovery.
+   * Relative paths are rejected: they would resolve against whatever working
+   * directory the host happens to have.
+   */
+  externalFormatterPaths: z.record(z.string(), z.string()).default({}),
+  /** Wall-clock ceiling for a single external formatter run. */
+  externalTimeoutMs: z.number().int().min(500).max(120_000).default(10_000),
+  /**
+   * Adapter ids to try first, in order. Lets a team prefer Black over Ruff for
+   * Python without disabling either.
+   */
+  preferredFormatters: z.array(z.string()).default([]),
 });
 
 export const CodeTrioConfigSchema = z.object({
@@ -100,11 +120,24 @@ export type CodeTrioConfig = z.infer<typeof CodeTrioConfigSchema>;
 /** The fully-defaulted configuration. */
 export const DEFAULT_CONFIG: CodeTrioConfig = CodeTrioConfigSchema.parse({});
 
+/**
+ * Recursive partial, stopping at arrays and at index-signature records.
+ *
+ * The record case matters: `externalFormatterPaths` is a
+ * `Record<string, string>` whose *keys* are open, so recursing would make every
+ * value `string | undefined` and a merged config would no longer satisfy the
+ * schema's own type. A record is replaced wholesale or not at all, which is
+ * also the behaviour a user expects from a settings object.
+ */
+type IsIndexSignature<T> = string extends keyof T ? true : false;
+
 type DeepPartial<T> = {
   [K in keyof T]?: T[K] extends readonly unknown[]
     ? T[K]
     : T[K] extends object
-      ? DeepPartial<T[K]>
+      ? IsIndexSignature<T[K]> extends true
+        ? T[K]
+        : DeepPartial<T[K]>
       : T[K];
 };
 

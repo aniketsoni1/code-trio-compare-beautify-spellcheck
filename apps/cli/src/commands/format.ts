@@ -1,6 +1,6 @@
 import type { CodeTrioConfig } from "@ctr/configuration";
 import { languageFromPath } from "@ctr/core";
-import { applyFormatToFile, defaultRegistry, loadFileDocument, runFormat } from "@ctr/agent";
+import { applyFormatToFile, loadFileDocument, registryFor, runFormat } from "@ctr/agent";
 import { summarizeFormat } from "@ctr/reporting";
 import pc from "picocolors";
 import { expandGlobs } from "../glob";
@@ -24,7 +24,7 @@ export async function runFormatCommand(
     return 2;
   }
   const color = opts.color ?? true;
-  const registry = defaultRegistry();
+  const registry = registryFor(cfg);
   let needsFormat = 0;
   let wrote = 0;
 

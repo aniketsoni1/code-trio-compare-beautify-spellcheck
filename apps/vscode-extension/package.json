@@ -196,6 +196,16 @@
         "category": "Code Trio"
       },
       {
+        "command": "codeTrio.formatWorkspace",
+        "title": "Beautify Entire Workspace...",
+        "category": "Code Trio"
+      },
+      {
+        "command": "codeTrio.showFormatters",
+        "title": "Show Available Formatters",
+        "category": "Code Trio"
+      },
+      {
         "command": "codeTrio.showPanel",
         "title": "Show Results Panel",
         "category": "Code Trio"
@@ -584,6 +594,38 @@
           "maximum": 400,
           "default": 80,
           "description": "Preferred maximum line width passed to formatters that accept one.",
+          "scope": "resource"
+        },
+        "codeTrio.externalFormatters.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow Code Trio to discover and run locally installed formatters (Ruff, Black, gofmt, rustfmt, clang-format). Code Trio never downloads a formatter. When disabled, only the bundled Prettier and the whitespace normalizer are used and no external process is started.",
+          "scope": "resource"
+        },
+        "codeTrio.externalFormatters.paths": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": {
+            "type": "string"
+          },
+          "markdownDescription": "Absolute paths to specific formatter executables, keyed by adapter id (`ruff`, `black`, `gofmt`, `rustfmt`, `clang-format`). Overrides PATH lookup. Relative paths are rejected.",
+          "scope": "resource"
+        },
+        "codeTrio.externalFormatters.timeoutMs": {
+          "type": "number",
+          "minimum": 500,
+          "maximum": 120000,
+          "default": 10000,
+          "description": "Maximum time a single external formatter run may take before it is terminated.",
+          "scope": "resource"
+        },
+        "codeTrio.externalFormatters.preferred": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Adapter ids to try first, in order. For example `[\"black\"]` prefers Black over Ruff for Python without disabling either.",
           "scope": "resource"
         }
       }

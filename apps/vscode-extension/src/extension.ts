@@ -13,7 +13,15 @@ import {
 } from "./compare";
 import { MergeManager } from "./merge";
 import { DictionaryWatcher, openDictionary } from "./dictionaries";
-import { formatActiveDocument, formatChangedFiles, onWillSaveEdits, previewFormat } from "./format";
+import {
+  formatActiveDocument,
+  formatChangedFiles,
+  formatWorkspace,
+  onWillSaveEdits,
+  previewFormat,
+  resetFormatterRegistry,
+  showFormatterStatus,
+} from "./format";
 
 export function activate(context: vscode.ExtensionContext): void {
   const results = new ResultsProvider();
@@ -42,6 +50,9 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (!event.affectsConfiguration("codeTrio")) return;
       dictionaries.refresh();
+      // Formatter paths and the enable flag live in settings, so a cached
+      // registry would keep using a formatter the user just disabled.
+      resetFormatterRegistry();
       spell.recheckVisible();
     }),
   );
@@ -111,6 +122,8 @@ export function activate(context: vscode.ExtensionContext): void {
     "codeTrio.formatDocument": () => formatActiveDocument(results, virtualDocs),
     "codeTrio.formatPreview": () => previewFormat(results, virtualDocs),
     "codeTrio.formatChangedFiles": () => formatChangedFiles(results),
+    "codeTrio.formatWorkspace": () => formatWorkspace(results),
+    "codeTrio.showFormatters": () => showFormatterStatus(),
     "codeTrio.showPanel": () => vscode.commands.executeCommand("codeTrio.resultsView.focus"),
     "codeTrio.refreshResults": () => {
       const doc = activeDocument();

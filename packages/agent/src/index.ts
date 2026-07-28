@@ -40,6 +40,7 @@ export {
   runFormat,
   applyFormatToFile,
   defaultRegistry,
+  registryFor,
 } from "./services";
 
 // Re-export the tool descriptors so hosts can present the permission model.
