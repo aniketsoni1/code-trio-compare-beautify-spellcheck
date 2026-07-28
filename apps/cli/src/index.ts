@@ -2,9 +2,11 @@ import { Command } from "commander";
 import type { Severity } from "@ctr/core";
 import { loadCliConfig } from "./config-io";
 import { runDiffCommand } from "./commands/diff";
+import { runMergeCommand } from "./commands/merge";
 import { runSpellCommand } from "./commands/spell";
 import { runFormatCommand } from "./commands/format";
 import { runConfigureCommand, runDoctorCommand, runInitCommand } from "./commands/misc";
+import { ExitCode, formatExitCodeTable } from "./exit-codes";
 import pkg from "../package.json";
 
 export function buildProgram(): Command {
@@ -26,13 +28,42 @@ export function buildProgram(): Command {
     .option("--ignore-whitespace", "ignore whitespace differences")
     .option("--ignore-case", "ignore case differences")
     .option("--ref <ref>", "compare <a> at a git ref against the working copy")
-    .option("--format <mode>", "output format: terminal | json | unified", "terminal")
+    .option("--ignore-eol", "treat CRLF, LF and CR as equivalent")
+    .option(
+      "--format <mode>",
+      "output format: terminal | json | unified | markdown | side-by-side",
+      "terminal",
+    )
     .option("--context <n>", "unchanged context lines per hunk")
     .option("--no-color", "disable ANSI colors")
     .option("--exit-code", "exit 1 when files differ")
     .action((a: string, b: string | undefined, opts) => {
       const { config } = loadCliConfig();
       process.exitCode = runDiffCommand(a, b, opts, config);
+    });
+
+  program
+    .command("merge")
+    .description("Three-way merge with conflict reporting and resolution")
+    .argument("[file]", "conflicted working-tree file, used with --git")
+    .option("--base <file>", "common ancestor")
+    .option("--ours <file>", "our version")
+    .option("--theirs <file>", "their version")
+    .option("--git", "read base/ours/theirs from git's conflict stages for <file>")
+    .option(
+      "--accept <side>",
+      "resolve every conflict: ours | theirs | both-ours-first | both-theirs-first | base",
+    )
+    .option("-o, --output <file>", "write the merged result (only when fully resolved)")
+    .option("--overwrite", "allow --output to replace an existing file")
+    .option("--no-diff3", "omit the base section from conflict markers")
+    .option("--show-clean", "also list regions that merged without conflict")
+    .option("--format <mode>", "output format: terminal | json | markdown | merged", "terminal")
+    .option("--no-color", "disable ANSI colors")
+    .option("--exit-code", "exit 1 when conflicts remain unresolved")
+    .action((file: string | undefined, opts) => {
+      const { config } = loadCliConfig();
+      process.exitCode = runMergeCommand(file, opts, config);
     });
 
   program
@@ -87,6 +118,19 @@ export function buildProgram(): Command {
       const { config, path } = loadCliConfig();
       process.exitCode = runConfigureCommand(config, path);
     });
+
+  program
+    .command("exit-codes")
+    .description("Print the stable exit-code table")
+    .action(() => {
+      process.stdout.write(`code-trio exit codes:\n${formatExitCodeTable()}\n`);
+      process.exitCode = ExitCode.Success;
+    });
+
+  program.addHelpText(
+    "after",
+    `\nExit codes:\n${formatExitCodeTable()}\n\nCode Trio makes no network requests and collects no telemetry.\n`,
+  );
 
   return program;
 }
