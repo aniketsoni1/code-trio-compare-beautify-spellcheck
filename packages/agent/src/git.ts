@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { isAbsolute, relative, resolve } from "node:path";
+import { realpathSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 
 /**
  * Local git access.
@@ -90,6 +91,50 @@ function git(args: readonly string[], cwd: string, maxBuffer = 1024 * 1024): str
   });
 }
 
+/**
+ * Canonicalise a path: resolve symlinks, and on Windows expand 8.3 short names
+ * to their long form.
+ *
+ * This is required for correctness, not tidiness. `git rev-parse
+ * --show-toplevel` always reports a *resolved* path, while a path handed to us
+ * by an editor or a shell may contain symlinks. Comparing the two without
+ * canonicalising makes a legitimate file inside the work tree look like an
+ * escape attempt. The case that bites in practice is macOS, where
+ * `os.tmpdir()` is `/var/folders/...` — a symlink to `/private/var/folders/...`
+ * — so every git operation on a path under the temp directory failed. Windows
+ * runners hit the same class of problem through `RUNNER~1` short names.
+ *
+ * A file that does not exist cannot be realpath'd, and that is an ordinary
+ * case here: `git show <ref>:<path>` is often asked about a file that was
+ * deleted, or that only exists at an older revision. So the deepest existing
+ * ancestor is canonicalised and the remaining segments are re-joined.
+ */
+function canonicalise(path: string): string {
+  const absolute = resolve(path);
+  try {
+    return realpathSync.native(absolute);
+  } catch {
+    const parent = dirname(absolute);
+    // Reached the filesystem root without finding anything that exists.
+    if (parent === absolute) return absolute;
+    return join(canonicalise(parent), basename(absolute));
+  }
+}
+
+/**
+ * Resolve a file path against a work-tree root, returning the repo-relative
+ * POSIX path, or null when the file lies outside the work tree.
+ *
+ * Both sides are canonicalised first, so the containment check compares like
+ * with like.
+ */
+function repoRelative(root: string, filePath: string, cwd: string): string | null {
+  const absolute = isAbsolute(filePath) ? filePath : resolve(cwd, filePath);
+  const rel = relative(canonicalise(root), canonicalise(absolute)).split("\\").join("/");
+  if (rel === "" || rel === ".." || rel.startsWith("../")) return null;
+  return rel;
+}
+
 /** Absolute path of the work-tree root containing `cwd`, or null. */
 export function gitRoot(cwd = process.cwd()): string | null {
   try {
@@ -113,10 +158,9 @@ export function gitShow(ref: string, filePath: string, cwd = process.cwd()): str
   try {
     const root = gitRoot(cwd);
     if (root === null) return null;
-    const abs = isAbsolute(filePath) ? filePath : resolve(cwd, filePath);
-    const rel = relative(root, abs).split("\\").join("/");
     // A path that climbs out of the work tree is not something we will read.
-    if (rel.startsWith("../") || rel === "..") return null;
+    const rel = repoRelative(root, filePath, cwd);
+    if (rel === null) return null;
     // No `--` separator here: `git show` treats everything after `--` as a
     // pathspec, so `git show -- HEAD:file` silently returns nothing instead of
     // the blob. Option injection is prevented upstream instead, by isSafeGitRef
@@ -185,9 +229,8 @@ export function conflictStages(
 ): { base: string; ours: string; theirs: string } | null {
   const root = gitRoot(cwd);
   if (root === null) return null;
-  const abs = isAbsolute(filePath) ? filePath : resolve(cwd, filePath);
-  const rel = relative(root, abs).split("\\").join("/");
-  if (rel.startsWith("../") || rel === "..") return null;
+  const rel = repoRelative(root, filePath, cwd);
+  if (rel === null) return null;
 
   const stage = (n: 1 | 2 | 3): string | null => {
     try {
