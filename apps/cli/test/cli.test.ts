@@ -1,9 +1,9 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CONFIG } from "@ctr/configuration";
-import { expandGlobs } from "../src/glob";
+import { expandGlobs, expandGlobsDetailed } from "../src/glob";
 import { runDiffCommand } from "../src/commands/diff";
 import { runSpellCommand } from "../src/commands/spell";
 import { runFormatCommand } from "../src/commands/format";
@@ -28,6 +28,61 @@ describe("expandGlobs", () => {
     writeFileSync(join(dir, "b.md"), "b");
     const matched = expandGlobs(["**/*.ts"], dir);
     expect(matched).toEqual(["a.ts"]);
+  });
+
+  it("descends into subdirectories for a recursive pattern", () => {
+    const dir = mkdtempSync(join(tmpdir(), "ctr-glob-deep-"));
+    mkdirSync(join(dir, "src", "nested"), { recursive: true });
+    writeFileSync(join(dir, "root.ts"), "a");
+    writeFileSync(join(dir, "src", "mid.ts"), "b");
+    writeFileSync(join(dir, "src", "nested", "leaf.ts"), "c");
+    expect(expandGlobs(["**/*.ts"], dir)).toEqual([
+      "root.ts",
+      "src/mid.ts",
+      "src/nested/leaf.ts",
+    ]);
+  });
+
+  it("never descends into node_modules", () => {
+    const dir = mkdtempSync(join(tmpdir(), "ctr-glob-nm-"));
+    mkdirSync(join(dir, "node_modules", "pkg"), { recursive: true });
+    writeFileSync(join(dir, "keep.ts"), "a");
+    writeFileSync(join(dir, "node_modules", "pkg", "skip.ts"), "b");
+    expect(expandGlobs(["**/*.ts"], dir)).toEqual(["keep.ts"]);
+  });
+
+  it("applies exclude globs to matched files", () => {
+    const dir = mkdtempSync(join(tmpdir(), "ctr-glob-ex-"));
+    mkdirSync(join(dir, "generated"), { recursive: true });
+    writeFileSync(join(dir, "keep.ts"), "a");
+    writeFileSync(join(dir, "generated", "drop.ts"), "b");
+    const matched = expandGlobs(["**/*.ts"], dir, { exclude: ["**/generated/**"] });
+    expect(matched).toEqual(["keep.ts"]);
+  });
+
+  it("accepts a literal path without walking", () => {
+    const dir = mkdtempSync(join(tmpdir(), "ctr-glob-lit-"));
+    writeFileSync(join(dir, "only.ts"), "a");
+    expect(expandGlobs(["only.ts"], dir)).toEqual(["only.ts"]);
+    expect(expandGlobs(["missing.ts"], dir)).toEqual([]);
+  });
+
+  it("reports truncation when the file cap is reached", () => {
+    const dir = mkdtempSync(join(tmpdir(), "ctr-glob-cap-"));
+    for (let i = 0; i < 8; i++) writeFileSync(join(dir, `f${i}.ts`), "x");
+    const result = expandGlobsDetailed(["**/*.ts"], dir, { maxFiles: 3 });
+    expect(result.files).toHaveLength(3);
+    expect(result.truncated).toBe(true);
+
+    const full = expandGlobsDetailed(["**/*.ts"], dir);
+    expect(full.files).toHaveLength(8);
+    expect(full.truncated).toBe(false);
+  });
+
+  it("deduplicates a file matched by two patterns", () => {
+    const dir = mkdtempSync(join(tmpdir(), "ctr-glob-dup-"));
+    writeFileSync(join(dir, "a.ts"), "a");
+    expect(expandGlobs(["**/*.ts", "*.ts", "a.ts"], dir)).toEqual(["a.ts"]);
   });
 });
 

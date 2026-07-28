@@ -1,6 +1,12 @@
 import * as vscode from "vscode";
 import type { Diagnostic as CtrDiagnostic, Severity } from "@ctr/core";
-import { appendProjectDictionaryWord, loadProjectDictionary, makeDocument, runSpell } from "@ctr/agent";
+import { matchesAnyGlob, toPosixPath } from "@ctr/core";
+import {
+  appendProjectDictionaryWord,
+  loadProjectDictionary,
+  makeDocument,
+  runSpell,
+} from "@ctr/agent";
 import { getConfig } from "./config";
 import type { ResultsProvider } from "./panel";
 import { isWriteAllowed, warnUntrusted, workspaceRootFor } from "./trust";
@@ -18,8 +24,37 @@ const SEVERITY_MAP: Record<Severity, vscode.DiagnosticSeverity> = {
   hint: vscode.DiagnosticSeverity.Hint,
 };
 
-const SKIP_PATH = /[/\\](node_modules|dist|out|\.git|\.vscode-test)[/\\]/;
+/**
+ * Directories that are never worth scanning regardless of user configuration.
+ * This is a floor, not the policy: the user-configurable policy is
+ * `codeTrio.spell.ignoreGlobs`, which is applied on top of this.
+ */
+const ALWAYS_SKIP_PATH = /[/\\](node_modules|\.git|\.vscode-test)[/\\]/;
 const DEBOUNCE_MS = 300;
+
+/**
+ * True when a document should not be spell-checked.
+ *
+ * `codeTrio.spell.ignoreGlobs` was previously contributed in package.json but
+ * never read — the extension used a hardcoded regex instead, so editing the
+ * setting did nothing. The configured globs are now matched against both the
+ * workspace-relative path (so a recursive `dist` glob behaves as users expect)
+ * and the absolute path (so an absolute glob also works).
+ */
+function isExcluded(uri: vscode.Uri, ignoreGlobs: readonly string[]): boolean {
+  if (ALWAYS_SKIP_PATH.test(uri.fsPath)) return true;
+  if (ignoreGlobs.length === 0) return false;
+
+  const absolute = toPosixPath(uri.fsPath);
+  if (matchesAnyGlob(absolute, ignoreGlobs)) return true;
+
+  const folder = vscode.workspace.getWorkspaceFolder(uri);
+  if (folder) {
+    const relative = toPosixPath(vscode.workspace.asRelativePath(uri, false));
+    if (matchesAnyGlob(relative, ignoreGlobs)) return true;
+  }
+  return false;
+}
 
 function toRange(d: CtrDiagnostic): vscode.Range {
   return new vscode.Range(
@@ -58,10 +93,15 @@ export class SpellManager implements vscode.CodeActionProvider, vscode.Disposabl
   checkNow(document: vscode.TextDocument): void {
     const uri = document.uri;
     if (uri.scheme !== "file" && uri.scheme !== "untitled") return;
-    if (SKIP_PATH.test(uri.fsPath)) return;
 
     const config = getConfig(uri);
     if (!config.spell.enabled) {
+      this.clear(uri);
+      return;
+    }
+    if (isExcluded(uri, config.spell.ignoreGlobs)) {
+      // Clear rather than return: a document can become excluded after the
+      // user edits ignoreGlobs, and stale diagnostics would otherwise linger.
       this.clear(uri);
       return;
     }
@@ -167,10 +207,11 @@ export class SpellManager implements vscode.CodeActionProvider, vscode.Disposabl
       warnUntrusted("adding to the project dictionary");
       return;
     }
-    const root =
-      workspaceRootFor(uri) ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const root = workspaceRootFor(uri) ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     if (!root) {
-      void vscode.window.showWarningMessage("Code Trio: open a folder to use a project dictionary.");
+      void vscode.window.showWarningMessage(
+        "Code Trio: open a folder to use a project dictionary.",
+      );
       return;
     }
     const config = getConfig(uri);
@@ -180,7 +221,9 @@ export class SpellManager implements vscode.CodeActionProvider, vscode.Disposabl
       word,
     );
     void vscode.window.showInformationMessage(
-      added ? `Code Trio: added "${word}" to ${config.spell.projectDictionaryPath}.` : `Code Trio: "${word}" already in dictionary.`,
+      added
+        ? `Code Trio: added "${word}" to ${config.spell.projectDictionaryPath}.`
+        : `Code Trio: "${word}" already in dictionary.`,
     );
     void path;
     for (const editor of vscode.window.visibleTextEditors) this.checkNow(editor.document);
