@@ -29,19 +29,35 @@ class ResultNode extends vscode.TreeItem {
  * The unified results panel. All three tools report a one-line summary here so
  * they read as one product. It intentionally holds no heavy state.
  */
-export class ResultsProvider implements vscode.TreeDataProvider<ResultNode> {
+export class ResultsProvider implements vscode.TreeDataProvider<ResultNode>, vscode.Disposable {
   private summary: ResultSummary = {};
   private readonly emitter = new vscode.EventEmitter<void>();
+  private readonly summaryEmitter = new vscode.EventEmitter<ResultSummary>();
   readonly onDidChangeTreeData = this.emitter.event;
+
+  /**
+   * Fires with the full summary whenever any part of it changes.
+   *
+   * The webview panel subscribes to this rather than each feature updating both
+   * surfaces, so a new feature cannot forget to keep them in sync.
+   */
+  readonly onDidChangeSummary = this.summaryEmitter.event;
 
   update(patch: Partial<ResultSummary>): void {
     this.summary = { ...this.summary, ...patch };
     this.emitter.fire();
+    this.summaryEmitter.fire(patch as ResultSummary);
   }
 
   clear(): void {
     this.summary = {};
     this.emitter.fire();
+    this.summaryEmitter.fire({});
+  }
+
+  dispose(): void {
+    this.emitter.dispose();
+    this.summaryEmitter.dispose();
   }
 
   getTreeItem(element: ResultNode): vscode.TreeItem {
