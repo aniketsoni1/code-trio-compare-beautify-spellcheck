@@ -11,7 +11,7 @@
     "color": "#0B1020",
     "theme": "dark"
   },
-  "homepage": "https://github.com/aniketsoni1/code-trio-compare-beautify-spellcheck#readme",
+  "homepage": "https://aniketsoni.com/extensions/code-trio/",
   "repository": {
     "type": "git",
     "url": "https://github.com/aniketsoni1/code-trio-compare-beautify-spellcheck.git",
@@ -20,7 +20,7 @@
   "bugs": {
     "url": "https://github.com/aniketsoni1/code-trio-compare-beautify-spellcheck/issues"
   },
-  "qna": "https://github.com/aniketsoni1/code-trio-compare-beautify-spellcheck/discussions",
+  "qna": "https://aniketsoni.com/extensions/support/",
   "sponsor": {
     "url": "https://github.com/sponsors/aniketsoni1"
   },
