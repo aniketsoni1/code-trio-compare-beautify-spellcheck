@@ -1,6 +1,6 @@
 {
   "name": "code-trio",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Code Trio CLI - offline, deterministic compare/diff, code-aware spell check, and beautify/format in one tool.",
   "license": "Apache-2.0",
   "author": "aniketsoni1",

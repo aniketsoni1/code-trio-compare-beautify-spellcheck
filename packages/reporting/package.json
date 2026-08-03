@@ -1,6 +1,6 @@
 {
   "name": "@ctr/reporting",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "Unified result and report formatting (terminal/json/unified) for Code Trio.",
   "license": "Apache-2.0",

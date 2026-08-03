@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.2] - 2026-08-03
+
+Metadata-only patch release. No functional changes to compare, merge, spell
+check or beautify — the extension code is unchanged from 0.2.1.
+
+### Changed
+
+- The **Homepage** link in the Marketplace Resources panel now points at
+  <https://aniketsoni.com/extensions/code-trio/>, a dedicated documentation
+  page for this extension.
+- The **Q & A** link now points at <https://aniketsoni.com/extensions/support/>,
+  which collects the issue tracker, the diagnostics commands and the security
+  disclosure process in one place. Bug reports still land on the GitHub issue
+  tracker.
+
 ## [0.2.1] - 2026-07-28
 
 Patch release superseding 0.2.0. No feature changes.

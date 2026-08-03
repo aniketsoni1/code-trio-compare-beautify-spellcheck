@@ -54,7 +54,7 @@ Install the packaged VSIX (see [Releases](https://github.com/aniketsoni1/code-tr
 ```bash
 npm ci
 npm run package:vsix
-code --install-extension artifacts/code-trio-compare-beautify-spellcheck-0.2.1.vsix
+code --install-extension artifacts/code-trio-compare-beautify-spellcheck-0.2.2.vsix
 ```
 
 Open a folder, then use the **Code Trio** panel in the Activity Bar, or the `Code Trio:` commands in the Command Palette.

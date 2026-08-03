@@ -1,6 +1,6 @@
 {
   "name": "@ctr/configuration",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "Namespaced configuration model and workspace discovery for Code Trio.",
   "license": "Apache-2.0",

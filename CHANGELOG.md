@@ -5,6 +5,23 @@ All notable changes to Code Trio are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The manifest
 version, git tag, and VSIX filename are kept in sync.
 
+## [0.2.2] - 2026-08-03
+
+Metadata-only patch release. No functional changes to compare, merge, spell
+check or beautify — the extension code is unchanged from 0.2.1.
+
+### Changed
+
+- `homepage` now points at <https://aniketsoni.com/extensions/code-trio/>,
+  a dedicated documentation page, rather than the GitHub README anchor.
+- `qna` now points at <https://aniketsoni.com/extensions/support/>, which
+  collects the issue tracker, diagnostics commands and security disclosure
+  process in one place. Bug reports still land on the GitHub issue tracker.
+- Marketplace publishing in CI now prefers Entra ID workload identity
+  federation (`vsce publish --azure-credential`) over a Personal Access
+  Token. Global Azure DevOps PATs are retired on 2026-12-01; the PAT path
+  remains as a fallback until then and emits a build warning.
+
 ## [0.2.1] - 2026-07-28
 
 Patch release. v0.2.0 was published to the Marketplace before these fixes
